@@ -10,7 +10,7 @@ const Cameraadd = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
     const camera = {
-        body: {camname:camname.current.value, ip:ip.current.value, port:port.current.value, username:id.current.value, password:pwd.current.value}
+        camname:camname.current.value, ip:ip.current.value, port:port.current.value, username:id.current.value, password:pwd.current.value
     }
     console.log(camera);
 

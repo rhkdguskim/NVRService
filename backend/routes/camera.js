@@ -25,7 +25,7 @@ db.find({}, (err, cameras) => {
 
 router.post('/', (req, res) => {
     console.log(req.body)
-    const camera = {camname:req.body.body.camname, ip:req.body.body.ip, port:req.body.body.port , username:req.body.body.username, password:req.body.body.password};
+    const camera = {camname:req.body.camname, ip:req.body.ip, port:req.body.port , username:req.body.username, password:req.body.password};
     db.insert(camera, (err, result) => {
         if (err) {
             res.status(500).send(err.message);

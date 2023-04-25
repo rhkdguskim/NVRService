@@ -52,7 +52,7 @@ onvif.Discovery.on('device', function(cam, rinfo, xml) {
                 if (scopes[i].includes('onvif://www.onvif.org/hardware')) {hardware = decodeURI(scopes[i].substring(31));}
             }
             let msg = 'Discovery Reply from ' + rinfo.address + ' (' + name + ') (' + hardware + ') (' + xaddrs + ') (' + urn + ')';
-            console.log(msg);
+            
             SearchCamlist.push({"address":rinfo.address, "name":name, "hardware":hardware});
         }
     );
