@@ -1,6 +1,9 @@
-import React from "react";
+import React, {useRef} from 'react';
 
-function Table({ columns, data }) {
+function Table({ columns, data , addCamera }) {
+  const addOnvifCamera = (e) => {
+    addCamera(e.target.id);
+  }
   return (
     <table>
       <thead>
@@ -14,8 +17,11 @@ function Table({ columns, data }) {
         {data.map((camera) => (
           <tr key={camera.address}>
             <td>{camera.address}</td>
+            <td>{camera.port}</td>
             <td>{camera.hardware}</td>
             <td>{camera.name}</td>
+            <td><input id ={camera.address} type="button" onClick={addOnvifCamera} value="추가"/></td>
+            
           </tr>
         ))}
       </tbody>

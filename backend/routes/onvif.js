@@ -51,15 +51,20 @@ onvif.Discovery.on('device', function(cam, rinfo, xml) {
                 if (scopes[i].includes('onvif://www.onvif.org/name')) {name = decodeURI(scopes[i].substring(27));}
                 if (scopes[i].includes('onvif://www.onvif.org/hardware')) {hardware = decodeURI(scopes[i].substring(31));}
             }
+            //console.log(rinfo);
             let msg = 'Discovery Reply from ' + rinfo.address + ' (' + name + ') (' + hardware + ') (' + xaddrs + ') (' + urn + ')';
-            
-            SearchCamlist.push({"address":rinfo.address, "name":name, "hardware":hardware});
+            //console.log(msg)
+            SearchCamlist.push({"address":rinfo.address,"port":rinfo.port, "name":name, "hardware":hardware});
         }
     );
 })
 
 router.get("/", (req, res) => {
     res.send(SearchCamlist);
+ })
+
+ router.get("/user", (req, res) => {
+    res.send({onvifid:req.session.onvifid, onvifpwd:req.session.onvifpwd});
  })
 
  router.get("/networklist", (req, res) => {

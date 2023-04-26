@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import Menu from './Menu';
 import Header from './Header';
@@ -8,37 +8,54 @@ import Cameraadd from './components/cameraadd';
 import Cameralist from './components/cameralist';
 import Onvif from './components/onvif';
 import Login from './components/login';
+import Register from './components/register';
 
 function App() {
   const [RenderStatus, SetRenderStatus] = useState(<Home/>);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    fetchLogined();
+  },);
+
+  async function fetchLogined() {
+    const response = await fetch('/user/');
+    const json = await response.json();
+    setIsLoggedIn(json.islogined)
+  }
+  
+  const handleLogin = (login) => {
+    console.log(login);
+    setIsLoggedIn(login);
+  };
+
 
   const SetRender = (str) => {
-    if(str === "list")
+    switch(str)
     {
+      case "list":
         SetRenderStatus(<Cameralist/>);
-    }
-    else if(str === "add") {
+        break;
+      case "add":
         SetRenderStatus(<Cameraadd/>);
-    }
-        
-    else if(str === "del") {
-        SetRenderStatus(<Cameraadd/>);
-    }
-    else if(str === "onvif") {
-      SetRenderStatus(<Onvif/>);
-  }
-    else if(str === "login") {
-      SetRenderStatus(<Login/>);
-    }
-    else{
-        SetRenderStatus(<Cameraadd/>);
+        break;
+      case "onvif":
+        SetRenderStatus(<Onvif/>);
+      break;
+      case "login":
+        if(!isLoggedIn)
+          SetRenderStatus(<Login isLoggedIn={isLoggedIn}/>);
+      break;
+      case "reg":
+        SetRenderStatus(<Register/>);
+      break;
     }
   }
 
   return (
     <>
     <Header />
-    <Menu setRender={SetRender}/>
+    <Menu isLoggedIn= {isLoggedIn} setRender={SetRender}/>
     {RenderStatus}
     <Footer />
     </>
