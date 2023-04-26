@@ -46,11 +46,38 @@ class Camera extends onvifCam {
         }
         this.connected = true;
          console.log('Camera is Connected');
-         super.getStreamUri({protocol: 'RTSP'}, function(err, stream) {
-           stream.uri = stream.uri.slice(7);
-           this.rtspurl = `rtsp://${this.username}:${this.password}@`+ stream.uri;
-           this.StartStream();
-         });
+         this.rtspurl = new Map();
+         this.getProfiles(function(err, profiles) {
+            if (err) {
+              console.log('Error: ' + err.message);
+            } else {
+              // 프로파일 목록 출력
+              //console.log('Profiles:', profiles);
+              // 첫 번째 프로파일의 스트림 URL 가져오기
+            for(let i=0; i<profiles.length; i++)
+            {
+              //console.log(profiles[i].name)
+              this.getStreamUri({
+                protocol: 'RTSP',
+                profileToken: profiles[i].name
+              }, function(err, stream) {
+                if (err) {
+                  console.log('Error: ' + err.message);
+                } else {
+                  console.log('Stream URL:', stream.uri);
+                  stream.uri = stream.uri.slice(7);
+                  this.rtspurl[profiles[i].name] = `rtsp://${this.username}:${this.password}@`+ stream.uri;
+                  //console.log(this.rtspurl)
+                }
+              });
+            }
+            }
+          });
+
+        //  super.getStreamUri({protocol: 'RTSP'}, function(err, stream) {
+        //    stream.uri = stream.uri.slice(7);
+        //    this.rtspurl = `rtsp://${this.username}:${this.password}@`+ stream.uri;
+        //  });
     }
 
     StartBackup()
@@ -67,7 +94,7 @@ class Camera extends onvifCam {
         }
 
         this.ffmpegbackupInstance = 
-        ffmpeg(this.rtspurl)
+        ffmpeg(this.rtspurl['Profile1'])
         .setFfmpegPath(ffmpeg_static)
         .outputOptions('-f segment')
         .outputOptions(`-segment_time ${segmentDuration}`)
@@ -101,10 +128,11 @@ class Camera extends onvifCam {
     {
         console.log("StartStream rtspurl : " + this.rtspurl);
         this.ffmpegInstance = 
-        ffmpeg(this.rtspurl)
+        ffmpeg(this.rtspurl['Profile2'])
         .setFfmpegPath(ffmpeg_static)
-        .outputOptions('-c:v', 'libx264')
-        .outputOptions('-c:a', 'copy')
+        .videoCodec('copy')
+        // .outputOptions('-c:v', 'libx264')
+        // .outputOptions('-c:a', 'copy')
 
         .size('640x480')
         .format('mp4')

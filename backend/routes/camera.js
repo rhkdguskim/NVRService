@@ -1,3 +1,5 @@
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpeg_static = require('ffmpeg-static');
 var express = require("express");
 const Datastore = require('nedb');
 const router = express.Router();
@@ -51,25 +53,50 @@ router.get('/', (req, res) => {
 });
 
 router.get('/:id', (req, res) => {
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Transfer-Encoding', 'chunked');
     const instance = MycameraList[req.params.id];
-    if(instance)
-    {
-        if(instance.connected)
-        {
-            console.log("PipeStream Start " + req.params.id);
-            instance.PipeStream(res);
-        }
-        else
-        {
-            console.log("Connection Error " + req.params.id);
-            res.status(500).send("Connection Error");
-        }
-    }
-    else
-    {
-        console.log("Instance is null " + req.params.id);
-        res.status(500).send("Instance is null");
-    }
+    console.log(instance.rtspurl['Profile2']);
+    const ffmpegInstance = 
+        ffmpeg(instance.rtspurl['Profile2'])
+        .setFfmpegPath(ffmpeg_static)
+        .videoCodec('copy')
+        .format('mp4')
+        .outputOptions(['-tune', 'zerolatency'])
+        .outputOptions('-movflags', 'frag_keyframe+empty_moov+default_base_moof')
+        .on('start', (err) => {
+            console.log("Streaming Started");
+        })
+        .on('error', (err) => {
+            console.error('Error:', err.message);
+        })
+        .on('end', () => {
+            console.log('FFmpeg instance closed');
+        })
+    ffmpegInstance.pipe(res);
+
+    req.on('close', () => {
+        console.log('Client disconnected');
+      });
+
+    // if(instance)
+    // {
+    //     if(instance.connected)
+    //     {
+    //         console.log("PipeStream Start " + req.params.id);
+    //         instance.PipeStream(res);
+    //     }
+    //     else
+    //     {
+    //         console.log("Connection Error " + req.params.id);
+    //         res.status(500).send("Connection Error");
+    //     }
+    // }
+    // else
+    // {
+    //     console.log("Instance is null " + req.params.id);
+    //     res.status(500).send("Instance is null");
+    // }
 });
 
 router.delete('/', (req,res) => {
