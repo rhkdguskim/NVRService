@@ -13,6 +13,9 @@ var cors = require('cors');
 const PORT = 8000;
 const app = express();
 
+expressWs(app);
+expressWs(camera);
+
 app.use(session({
   secret: 'rhkdguskim',
   resave: false,
@@ -37,7 +40,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/user", user);
-app.use("/camera", requireLogin, camera);
+app.use("/camera", camera);
 app.use("/videos", requireLogin, videos)
 app.use("/onvif", requireLogin, onvif)
 

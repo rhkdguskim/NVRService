@@ -1,5 +1,7 @@
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpeg_static = require('ffmpeg-static');
+const { spawn } = require('child_process');
+const { PassThrough } = require('stream');
 const fs = require('fs');
 const path = require('path');
 var onvifCam = require('onvif').Cam;
@@ -15,6 +17,10 @@ class Camera extends onvifCam {
       this.username = username;
       this.password = password;
       this.cameraname = camname;
+      this.fluentffmpeg = new Map();
+      this.ffmpegStreams = new Map();
+      this.rtspurl = new Map();
+      //this.getFFmpegStream("profile");
     }
 
     start()
@@ -46,7 +52,6 @@ class Camera extends onvifCam {
         }
         this.connected = true;
          console.log('Camera is Connected');
-         this.rtspurl = new Map();
          this.getProfiles(function(err, profiles) {
             if (err) {
               console.log('Error: ' + err.message);
@@ -148,6 +153,60 @@ class Camera extends onvifCam {
             console.log('FFmpeg instance closed');
         })
     }
+
+    StartStream()
+    {
+
+    }
+
+    getFFmpegStream(profile) {
+      //console.log(profile);
+      //console.log(this.ffmpegStreams[profile]);
+      if (this.ffmpegStreams[profile]) {
+        return ;
+      }
+      //console.log("test");
+      //console.log(this.rtspurl[profile]);
+      const nodePath = process.execPath;
+      //console.log(nodePath);
+      const scriptPath = path.resolve(__dirname, '../ffmpeg/fluent-ffmpeg.js');
+      //console.log(scriptPath);
+      this.fluentffmpeg.set(profile, spawn(nodePath, [scriptPath, this.rtspurl[profile]]));
+      // this.fluentffmpeg[profile].stdout.on('data', (data) => {
+      //   console.log(`Output: ${data}`);
+      // });
+      
+      // this.fluentffmpeg[profile].stderr.on('data', (data) => {
+      //   console.error(`Error: ${data}`);
+      // });
+      
+      // this.fluentffmpeg[profile].on('close', (code) => {
+      //   console.log(`Child process exited with code ${code}`);
+      // });
+      //console.log(this.fluentffmpeg.get(profile));
+      const childProcess = this.fluentffmpeg.get(profile);
+
+      const passThrough = new PassThrough();
+      childProcess.stdout.on('data', (data) => {
+        //console.log(data);
+        passThrough.write(data);
+      });
+
+      childProcess.stdout.on('end', () => {
+        console.log("end");
+        passThrough.end();
+      });
+
+      this.ffmpegStreams.set(profile, passThrough);
+    }
+
+    KillFFmpegStream(profile) {
+      this.fluentffmpeg[profile].kill();
+      this.fluentffmpeg.delete(profile);
+      this.ffmpegStreams.delete(profile);
+    }
+
+    
 
     StopStream() {
         this.ffmpegInstance = null;

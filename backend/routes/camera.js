@@ -1,13 +1,17 @@
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpeg_static = require('ffmpeg-static');
 var express = require("express");
+const expressWs = require("express-ws");
 const Datastore = require('nedb');
 const router = express.Router();
 const cam = require("../classes/camera");
-
+const { PassThrough } = require('stream');
 const db = new Datastore({ filename: 'db/CameraDB', autoload: true });
 
 const MycameraList = new Map();
+
+expressWs(router);
+
 
 db.find({}, (err, cameras) => {
     if(err)
@@ -20,10 +24,42 @@ db.find({}, (err, cameras) => {
         {
             const Camera = new cam(cameras[idx].camname, cameras[idx].ip, cameras[idx].port, cameras[idx].username, cameras[idx].password);
             Camera.start();
-            MycameraList[cameras[idx]._id] = Camera;
+            MycameraList.set(cameras[idx]._id, Camera);
         }
     }
 })
+
+router.ws('/ws/', (ws, req) => {
+    const camid = req.query.camid;
+    const profile = req.query.profile;
+    //console.log(camid);
+    //console.log(profile);
+    //ws.send(req.query.camid+req.query.profile);
+    //console.log(MycameraList[camid]);
+    const camera = MycameraList.get(camid);
+    if (!camera) {
+        console.error(`Camera ${camid} not found`);
+        return;
+      }
+
+    camera.getFFmpegStream(profile);
+    //console.log("test");
+    const stream = camera.ffmpegStreams.get(profile);
+    //console.log(stream);
+    //console.log(MycameraList[camid]);
+    stream.on('data', (data) => {
+      //console.log(data);
+      ws.send(data);
+      });
+
+    stream.on('end', () => {
+        console.log("Streaming ended");
+    });
+
+    ws.on('close', () => {
+      console.log('Client disconnected');
+    });
+  });
 
 router.post('/', (req, res) => {
     console.log(req.body)
@@ -35,7 +71,7 @@ router.post('/', (req, res) => {
         else {
             const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password);
             Camera.start();
-            MycameraList[req.body._id] = Camera;
+            MycameraList.set(result._id, Camera);
             res.status(201).send(result);
         }
     })
@@ -55,7 +91,7 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
     res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Transfer-Encoding', 'chunked');
-    const instance = MycameraList[req.params.id];
+    const instance = MycameraList.get(req.params.id);
     console.log(instance.rtspurl['Profile2']);
     const ffmpegInstance = 
         ffmpeg(instance.rtspurl['Profile2'])

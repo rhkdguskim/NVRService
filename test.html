@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Streaming Client</title>
+</head>
+<body>
+    <video id="videoPlayer" width="640" height="360"></video>
+
+    <script>
+        const videoPlayer = document.querySelector('#videoPlayer');
+        const ws = new WebSocket('ws://localhost:8000/camera/ws?camid=5OVSMDRYZvB4KqHB&profile=test');
+
+        ws.onmessage = (event) => {
+            // 이벤트 데이터가 Blob 형태로 전송되기 때문에 URL.createObjectURL을 통해 URL 생성
+            console.log(event.data)
+            const videoBlob = new Blob([event.data], { type: 'video/mp4' });
+            const videoUrl = URL.createObjectURL(videoBlob);
+
+            // 비디오 태그의 src 속성에 생성된 URL을 설정하여 비디오 스트림 출력
+            videoPlayer.src = videoUrl;
+        };
+    </script>
+</body>
+</html>
