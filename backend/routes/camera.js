@@ -5,12 +5,13 @@ const expressWs = require("express-ws");
 const Datastore = require('nedb');
 const router = express.Router();
 const cam = require("../classes/camera");
-const { PassThrough } = require('stream');
 const db = new Datastore({ filename: 'db/CameraDB', autoload: true });
 
-const MycameraList = new Map();
 
 expressWs(router);
+const MycameraList = new Map();
+
+
 
 
 db.find({}, (err, cameras) => {
@@ -29,36 +30,39 @@ db.find({}, (err, cameras) => {
     }
 })
 
-router.ws('/ws/', (ws, req) => {
-    const camid = req.query.camid;
-    const profile = req.query.profile;
+router.ws('/ws/:id/:profile', (ws, req) => {
+    ws.binaryType = 'arraybuffer';
+    const camid = req.params.id;
+    const profile = req.params.profile;
     //console.log(camid);
     //console.log(profile);
-    //ws.send(req.query.camid+req.query.profile);
-    //console.log(MycameraList[camid]);
+
     const camera = MycameraList.get(camid);
+
     if (!camera) {
         console.error(`Camera ${camid} not found`);
         return;
       }
 
     camera.getFFmpegStream(profile);
-    //console.log("test");
     const stream = camera.ffmpegStreams.get(profile);
-    //console.log(stream);
-    //console.log(MycameraList[camid]);
+
     stream.on('data', (data) => {
-      //console.log(data);
       ws.send(data);
-      });
+    });
 
     stream.on('end', () => {
         console.log("Streaming ended");
+        ws.close();
     });
 
     ws.on('close', () => {
       console.log('Client disconnected');
     });
+
+    ws.on('message', (data) => {
+        console.log(data);
+    })
   });
 
 router.post('/', (req, res) => {
@@ -89,12 +93,15 @@ router.get('/', (req, res) => {
 });
 
 router.get('/:id', (req, res) => {
+    res.setHeader('Connection', 'Keep-Alive');
     res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Transfer-Encoding', 'chunked');
-    const instance = MycameraList.get(req.params.id);
-    console.log(instance.rtspurl['Profile2']);
+
+
+    camera.getFFmpegStream(profile);
+    const stream = camera.ffmpegStreams.get(profile);
     const ffmpegInstance = 
-        ffmpeg(instance.rtspurl['Profile2'])
+        ffmpeg("BigBuckBunny.mp4")
         .setFfmpegPath(ffmpeg_static)
         .videoCodec('copy')
         .format('mp4')
@@ -115,24 +122,32 @@ router.get('/:id', (req, res) => {
         console.log('Client disconnected');
       });
 
-    // if(instance)
-    // {
-    //     if(instance.connected)
-    //     {
-    //         console.log("PipeStream Start " + req.params.id);
-    //         instance.PipeStream(res);
-    //     }
-    //     else
-    //     {
-    //         console.log("Connection Error " + req.params.id);
-    //         res.status(500).send("Connection Error");
-    //     }
-    // }
-    // else
-    // {
-    //     console.log("Instance is null " + req.params.id);
-    //     res.status(500).send("Instance is null");
-    // }
+});
+
+router.get('/:id/:profile', (req, res) => {
+    res.setHeader('Connection', 'Keep-Alive');
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+
+    const camid = req.params.id;
+    const profile = req.params.profile;
+
+    const camera = MycameraList.get(camid);
+
+    if (!camera) {
+        console.error(`Camera ${camid} not found`);
+        return;
+      }
+
+    camera.getFFmpegStream(profile);
+    const stream = camera.ffmpegStreams.get(profile);
+    stream.pipe(res);
+
+    req.on('close', () => {
+        console.log('Client disconnected');
+    });
+
 });
 
 router.delete('/', (req,res) => {

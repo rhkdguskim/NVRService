@@ -1,0 +1,49 @@
+<!-- <!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>H.264 스트리밍 예제</title>
+  </head>
+  <body>
+    <div>
+      <video id="video" autoplay controls></video>
+    </div>
+    <script>
+          var ws = new WebSocket("ws://localhost:8000/camera/ws");
+
+          // WebSocket 서버로부터 데이터를 수신할 때마다 실행됩니다.
+          ws.onmessage = function(event) {
+  // Blob 데이터를 ArrayBuffer로 변환합니다.
+  var reader = new FileReader();
+  reader.onload = function() {
+    // ArrayBuffer를 Uint8Array로 변환합니다.
+    var uint8Array = new Uint8Array(reader.result);
+
+    // Blob URL을 생성합니다.
+    var blob = new Blob([uint8Array], { type: 'video/mp4' });
+    var videoUrl = URL.createObjectURL(blob);
+
+    // HTML5 비디오 플레이어에 비디오를 로드합니다.
+    var video = document.getElementById("video");
+    video.src = videoUrl;
+  };
+  reader.readAsArrayBuffer(event.data);
+};
+    </script>
+  </body>
+</html> -->
+
+<html>
+<body>
+	<canvas id="stream"></canvas>
+</body>
+
+<script type="text/javascript" src="jsmpeg.min.js"></script>
+<script type="text/javascript">
+	player = new JSMpeg.Player('ws://localhost:8000/camera/ws/SdJWqM6rBxPrixCo/main', {
+	  canvas: document.getElementById('stream'), // stream should be a canvas DOM element
+    autoplay:true,
+	})
+  
+</script>
+</html>

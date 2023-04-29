@@ -4,15 +4,14 @@ const path = require('path');
 
 const arg1 = process.argv[2];
 
-console.log("child process")
-const scriptPath = path.resolve(__dirname, 'gizmo.mp4');
+//console.log("child process")
+//const scriptPath = path.resolve(__dirname, 'gizmo.mp4');
 
-ffmpeg('https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_30MB.mp4')
+ffmpeg(arg1)
 .setFfmpegPath(ffmpeg_static)
-.addOption('-vcodec', 'copy')
-.addOption('-f', 'mp4')
-.addOption('-movflags', 'frag_keyframe+empty_moov+default_base_moof')
-.outputFormat('mp4')
+.videoCodec('libx264') // 비디오 코덱을 H.264로 설정
+//.videoCodec('mpeg1video') // 비디오 코덱을 MPEG-1로 설정
+.addOption('-f', 'mpegts')
 .on('start', (err) => {
     console.log("Streaming Started");
 })

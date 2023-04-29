@@ -31,6 +31,13 @@ const requireLogin = (req, res, next) => {
   }
 };
 
+app.use(cors({
+  origin: '*',  // 모든 도메인에서 요청 허용
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],  // 허용하는 HTTP 메소드
+  allowedHeaders: ['Content-Type', 'Authorization']  // 허용하는 HTTP 헤더
+}));
+
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../frontend/my-app/build')));
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
@@ -44,12 +51,10 @@ app.use("/camera", camera);
 app.use("/videos", requireLogin, videos)
 app.use("/onvif", requireLogin, onvif)
 
-app.use(cors());
-
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../frontend/my-app/build/index.html'));
 });
 
-app.listen(PORT, ()=>{
+const server = app.listen(PORT, ()=>{
     console.log(`server is listening on post ${PORT}`);
 })
