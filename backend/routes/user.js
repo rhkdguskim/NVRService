@@ -49,7 +49,7 @@ router.post("/login", (req, res) => {
 
 
  router.get("/", (req, res) => {
-    res.send({islogined: req.session.islogined});
+    res.send({user : {username:req.session.username, onvifid:req.session.onvifid, onvifpwd:req.session.onvifpwd} , islogined: req.session.islogined});
  })
 
  router.post("/", (req, res) => {

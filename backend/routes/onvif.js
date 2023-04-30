@@ -54,7 +54,7 @@ onvif.Discovery.on('device', function(cam, rinfo, xml) {
             //console.log(rinfo);
             let msg = 'Discovery Reply from ' + rinfo.address + ' (' + name + ') (' + hardware + ') (' + xaddrs + ') (' + urn + ')';
             //console.log(msg)
-            SearchCamlist.push({"address":rinfo.address,"port":rinfo.port, "name":name, "hardware":hardware});
+            SearchCamlist.push({"id":SearchCamlist.length,"address":rinfo.address,"port":rinfo.port, "name":name, "hardware":hardware});
         }
     );
 })

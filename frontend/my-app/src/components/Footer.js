@@ -1,4 +1,4 @@
-import './Footer.css';
+import '../styles/Footer.css';
 
 function Footer() {
   return (
@@ -7,7 +7,7 @@ function Footer() {
     <div class="footer-row">
       <div class="footer-column">
         <h4 class="footer-title">About Us</h4>
-        <p class="footer-text">IpCamera Streaming Server 2023 Kwanghyeon.kim All rights reserved.</p>
+        <p class="footer-text">IpCamera Streaming Server 2023 All rights reserved.</p>
       </div>
     </div>
   </div>

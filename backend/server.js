@@ -2,6 +2,7 @@ const express = require("express");
 const expressWs = require("express-ws");
 const session = require('express-session');
 const NedbStore = require('connect-nedb-session')(session);
+var HLSServer = require("hls-server");
 
 const camera = require("./routes/camera");
 const videos = require("./routes/videos");
@@ -13,6 +14,26 @@ var cors = require('cors');
 const PORT = 8000;
 const app = express();
 
+var hls = new HLSServer(app, {
+  provider: {
+    exists: function (req, callback) { // check if a file exists (always called before the below methods)
+      callback(null, true)                 // File exists and is ready to start streaming
+      callback(new Error("Server Error!")) // 500 error
+      callback(null, false)                // 404 error
+    },
+    getManifestStream: function (req, callback) { // return the correct .m3u8 file
+      // "req" is the http request
+      // "callback" must be called with error-first arguments
+      callback(null, myNodeStream)
+      // or
+      callback(new Error("Server error!"), null)
+    },
+    getSegmentStream: function (req, callback) { // return the correct .ts file
+      callback(null, myNodeStream)
+    }
+  }
+})
+
 expressWs(app);
 expressWs(camera);
 
@@ -20,7 +41,10 @@ app.use(session({
   secret: 'rhkdguskim',
   resave: false,
   saveUninitialized: false,
-  store: new NedbStore({ filename: 'db/SessionDB' })
+  store: new NedbStore({ filename: 'db/SessionDB' }),
+  cookie: {
+    maxAge: 30 * 60 * 1000 // 30분
+  },
 }));
 
 const requireLogin = (req, res, next) => {
@@ -36,7 +60,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],  // 허용하는 HTTP 메소드
   allowedHeaders: ['Content-Type', 'Authorization']  // 허용하는 HTTP 헤더
 }));
-
+app.use(express.static("hls"))
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../frontend/my-app/build')));
 app.use(express.urlencoded({ extended: true }))

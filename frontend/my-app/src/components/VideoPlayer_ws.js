@@ -1,6 +1,6 @@
 import React, {useRef, useEffect} from 'react'
 
-const VideoPlayer = ({videoId, profiles}) => {
+const VideoPlayerWS = ({videoId}) => {
     const videoRef = useRef(null)
 
     useEffect(()=>{
@@ -18,4 +18,4 @@ const VideoPlayer = ({videoId, profiles}) => {
   )
 }
 
-export default VideoPlayer
+export default VideoPlayerWS

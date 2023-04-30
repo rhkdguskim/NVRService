@@ -1,10 +1,11 @@
-import './Home.css';
-import './components/videoplayer'
-import VideoPlayer from './components/videoplayer';
+import '../styles/View.css';
+import '../components/VideoPlayer'
+import VideoPlayer from '../components/VideoPlayer';
+import VideoPlayer2 from '../components/Video';
 import React, { useState, useEffect } from 'react';
 
 
-function Home() {
+function View() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
@@ -22,10 +23,11 @@ function Home() {
   
 {data.map((camera) => (
           <VideoPlayer videoId={camera._id}/>
+          //<VideoPlayer2 src={camera._id} />
         ))}
 </body>
     
   );
 }
 
-export default Home;
+export default View;

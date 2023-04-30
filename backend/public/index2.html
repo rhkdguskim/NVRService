@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://unpkg.com/video.js/dist/video-js.css" rel="stylesheet" />
+  </head>
+  <body>
+    <video-js id="my-video" class="video-js" controls preload="auto" width="640" height="264"></video-js>
+    <script src="https://unpkg.com/video.js/dist/video.js"></script>
+    <script>
+      const player = videojs('my-video');
+      player.src({
+        src: 'http://localhost:8000/camera/jfYrgg3CCBw72SS9/main',
+        type: 'video/mp4'
+      });
+      player.play();
+    </script>
+  </body>
+</html>

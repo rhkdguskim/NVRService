@@ -9,9 +9,10 @@ const arg1 = process.argv[2];
 
 ffmpeg(arg1)
 .setFfmpegPath(ffmpeg_static)
-.videoCodec('libx264') // 비디오 코덱을 H.264로 설정
-//.videoCodec('mpeg1video') // 비디오 코덱을 MPEG-1로 설정
+//.videoCodec('libx264') // 비디오 코덱을 H.264로 설정
+.videoCodec('mpeg1video') // 비디오 코덱을 MPEG-1로 설정
 .addOption('-f', 'mpegts')
+.addOption('pipe:1')
 .on('start', (err) => {
     console.log("Streaming Started");
 })
@@ -20,7 +21,7 @@ ffmpeg(arg1)
 })
 .on('end', () => {
     console.log('FFmpeg instance closed');
-}).output(process.stdout) // Add this line
+})
 .run();
 
 

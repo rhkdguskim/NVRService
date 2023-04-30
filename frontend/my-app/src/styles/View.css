@@ -1,0 +1,20 @@
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 1rem;
+  }
+  
+  .grid-item {
+    position: relative;
+    overflow: hidden;
+    background-color: #eee;
+    padding: 6rem;
+  }
+
+  .grid-item video {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+  }

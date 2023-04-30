@@ -1,13 +1,12 @@
-const ffmpeg = require('fluent-ffmpeg');
+const EventEmitter = require('events');
 const ffmpeg_static = require('ffmpeg-static');
 const { spawn } = require('child_process');
-const { PassThrough } = require('stream');
-const fs = require('fs');
 const path = require('path');
+const { PassThrough } = require('stream');
 var onvifCam = require('onvif').Cam;
 const Datastore = require('nedb');
 
-const db = new Datastore({ filename: 'db/CameraProfileDB', autoload: true });
+//const db = new Datastore({ filename: 'db/CameraProfileDB', autoload: true });
 //const db = new Datastore({ filename: 'db/VodDB', autoload: true });
 
 class Camera extends onvifCam {
@@ -22,6 +21,8 @@ class Camera extends onvifCam {
       this.fluentffmpeg = new Map();
       this.ffmpegStreams = new Map();
       this.rtspurl = new Map();
+
+      this.Emitter = new EventEmitter();
     }
 
     start()
@@ -43,14 +44,31 @@ class Camera extends onvifCam {
             super.connect(this.Callbackfunc);
     }
 
+    SetLiveProfile(profile)
+    {
+      this.liveprofile = profile;
+    }
+
+    SetProtocolType(protocol)
+    {
+      this.protocoltype = protocol;
+    }
+
+    StratLiveprofile()
+    {
+      this.getFFmpegStream(this.liveprofile);
+    }
+
     Callbackfunc(err)
     {
         if (err) {
             this.connected = false;
+            this.Emitter.emit('offline', (err));
             //console.log('Connection Failed for ' + this.ip + ' Port: ' + this.port + ' Username: ' + this.username + ' Password: ' + this.password);
             return;
         }
         this.connected = true;
+        this.Emitter.emit('online');
          console.log("[Camera Connected] "+"IP: " + this.ip + ' Port: ' + this.port);
          this.getProfiles(function(err, profiles) {
             if (err) {
@@ -71,6 +89,8 @@ class Camera extends onvifCam {
                 }
               });
             }
+            this.profilelist = profiles;
+            this.Emitter.emit('profile', (profiles));
             }
           });
     }
@@ -80,10 +100,24 @@ class Camera extends onvifCam {
         console.log("alreay exist");
         return ;
       }
-      const nodePath = process.execPath;
-      const scriptPath = path.resolve(__dirname, '../ffmpeg/fluent-ffmpeg.js');
+
+      const args = [
+        '-i',
+        'BigBuckBunny.mp4',
+        '-vcodec',
+        'copy',
+        '-f',
+        'mp4',
+        '-tune',
+        'zerolatency',
+        '-movflags',
+        'frag_keyframe+empty_moov+default_base_moof',
+         'pipe:1',
+      ];
+      
+
       console.log(this.rtspurl.get(profile));
-      this.fluentffmpeg.set(profile, spawn(nodePath, [scriptPath, this.rtspurl.get(profile)]));
+      this.fluentffmpeg.set(profile, spawn(ffmpeg_static, args));
       const childProcess = this.fluentffmpeg.get(profile);
 
       const passThrough = new PassThrough();
@@ -102,6 +136,13 @@ class Camera extends onvifCam {
 
       this.ffmpegStreams.set(profile, passThrough);
     }
+
+    getFFmpegStreamMp4() {
+      const nodePath = process.execPath;
+      const scriptPath = path.resolve(__dirname, '../ffmpeg/fluent-ffmpeg_mp4.js');
+      return spawn(nodePath, [scriptPath, "BigBuckBunny.mp4"]);
+    }
+    
 
     KillFFmpegStream(profile) {
       this.fluentffmpeg[profile].kill();

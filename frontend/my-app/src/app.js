@@ -1,27 +1,31 @@
 import React, { useState, useEffect } from 'react';
 
-import Menu from './Menu';
-import Header from './Header';
-import Home from './Home';
-import Footer from './Footer';
-import Cameraadd from './components/cameraadd';
-import Cameralist from './components/cameralist';
-import Onvif from './components/onvif';
-import Login from './components/login';
-import Register from './components/register';
+import Menu from './components/Menu';
+import Header from './components/Header';
+import Home from './pages/Home';
+import View from './pages/View';
+import Footer from './components/Footer';
+import AddCamera from './pages/AddCamera';
+import Cameralist from './pages/CameraList';
+import Onvif from './pages/Onvif';
+import Login from './pages/Login';
+import Register from './pages/Register';
+
+import {BrowserRouter, Routes, Route, redirect} from "react-router-dom";
 
 function App() {
-  const [RenderStatus, SetRenderStatus] = useState(<Home/>);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
+  const [Userdata, SetUserdata] = useState([]);
   useEffect(() => {
     fetchLogined();
-  },);
+  },[isLoggedIn]);
 
   async function fetchLogined() {
     const response = await fetch('/user/');
     const json = await response.json();
+    console.log(json);
     setIsLoggedIn(json.islogined)
+    SetUserdata(json.user);
   }
   
   const handleLogin = (login) => {
@@ -30,34 +34,26 @@ function App() {
   };
 
 
-  const SetRender = (str) => {
-    switch(str)
-    {
-      case "list":
-        SetRenderStatus(<Cameralist/>);
-        break;
-      case "add":
-        SetRenderStatus(<Cameraadd/>);
-        break;
-      case "onvif":
-        SetRenderStatus(<Onvif/>);
-      break;
-      case "login":
-        if(!isLoggedIn)
-          SetRenderStatus(<Login isLoggedIn={isLoggedIn}/>);
-      break;
-      case "reg":
-        SetRenderStatus(<Register/>);
-      break;
-    }
-  }
-
   return (
     <>
-    <Header />
-    <Menu isLoggedIn= {isLoggedIn} setRender={SetRender}/>
-    {RenderStatus}
-    <Footer />
+    <BrowserRouter>
+      {isLoggedIn && <Header user={Userdata} handleLogin={handleLogin} /> }
+      {isLoggedIn && <Menu/> }
+      {isLoggedIn && <Routes>
+        <Route exact path="/" element={<Home />}/>
+        <Route exact path="/View" element={<View />}/>
+        <Route exact path="/camera" element={<Cameralist />}/>
+        <Route exact path="/camera/add" element={<AddCamera user={Userdata}/>}/>
+        <Route exact path="/onvif" element={<Onvif user={Userdata}/>}/>
+    </Routes>
+     }
+      {isLoggedIn && <Footer />}
+      {!isLoggedIn && <Routes>
+      <Route exact path="/" element={<Login handleLogin={handleLogin}/>}/>
+      <Route exact path="/user/register" element={<Register/>}/>
+      </Routes>
+      }
+      </BrowserRouter>
     </>
   );
 }

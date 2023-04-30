@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>WebSocket Video Streaming</title>
+</head>
+<body>
+  <video id="videoPlayer" controls></video>
+
+  <script>
+    const mediaSource = new MediaSource();
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.src = URL.createObjectURL(mediaSource);
+
+    const socket = new WebSocket('ws://localhost:8000/camera/ws/jfYrgg3CCBw72SS9/main');
+    socket.binaryType = 'blob';
+
+    socket.onopen = function(event) {
+      console.log('WebSocket is open now.');
+    };
+
+    socket.onmessage = function(event) {
+      if (event.data instanceof Blob) {
+        const fileReader = new FileReader();
+        fileReader.onload = function() {
+          const arrayBuffer = this.result;
+          const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+          sourceBuffer.appendBuffer(arrayBuffer);
+        };
+        fileReader.readAsArrayBuffer(event.data);
+      }
+    };
+
+    socket.onclose = function(event) {
+      console.log('WebSocket is closed now.');
+    };
+  </script>
+</body>
+</html>
