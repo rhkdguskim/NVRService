@@ -8,7 +8,7 @@ const cam = require("../classes/camera");
 const db = new Datastore({ filename: 'db/CameraDB', autoload: true });
 const { spawn } = require('child_process');
 const path = require('path');
-
+const fs = require('fs');
 
 expressWs(router);
 const MycameraList = new Map();
@@ -32,7 +32,7 @@ db.find({}, (err, cameras) => {
     {
         for(idx in cameras)
         {
-            const Camera = new cam(cameras[idx].camname, cameras[idx].ip, cameras[idx].port, cameras[idx].username, cameras[idx].password);
+            const Camera = new cam(cameras[idx].camname, cameras[idx].ip, cameras[idx].port, cameras[idx].username, cameras[idx].password, cameras[idx]._id);
             Camera.SetLiveProfile(cameras[idx].liveprofile);
             Camera.SetProtocolType(cameras[idx].protocoltype);
             Camera.start();
@@ -42,10 +42,9 @@ db.find({}, (err, cameras) => {
 })
 
 router.ws('/ws/:id/:profile', (ws, req) => {
-    ws.binaryType = 'arraybuffer';
     const camid = req.params.id;
     const profile = req.params.profile;
-    //console.log(camid);
+    console.log("websocketStreaming");
     //console.log(profile);
 
     const camera = MycameraList.get(camid);
@@ -55,7 +54,7 @@ router.ws('/ws/:id/:profile', (ws, req) => {
         return;
       }
 
-    camera.getFFmpegStreamMp4();
+    camera.getFFmpegStream(profile);
     const stream = camera.ffmpegStreams.get(profile);
 
     stream.on('data', (data) => {
@@ -97,7 +96,7 @@ router.post('/', (req, res) => {
                   return;
                 }
             });
-            const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password);
+            const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password, result._id);
             Camera.SetLiveProfile(req.body.liveprofile);
             Camera.SetProtocolType(req.body.protocoltype);
             Camera.start();
@@ -140,6 +139,21 @@ router.get('/', (req, res) => {
     })
 });
 
+router.get('/hls/:id/', (req, res) => {
+    const m3u8FilePath = path.join(__dirname, `../hls/${req.params.id}`, 'play.m3u8');
+    //console.log(m3u8FilePath);
+
+    console.log(`${req.params.id}/play.m3u8`);
+    res.redirect(`../../../${req.params.id}/play.m3u8`);
+    // const stream = fs.createReadStream(m3u8FilePath);
+    // stream.on('error', (err) => {
+    //   console.error(err);
+    //   res.status(500).end('Internal Server Error');
+    // });
+    // res.set('Content-Type', 'application/vnd.apple.mpegurl');
+    // stream.pipe(res);
+})
+
 router.get('/:id/', (req, res) => {
 
     const camid = req.params.id;
@@ -154,13 +168,13 @@ router.get('/:id/', (req, res) => {
 
     const args = [
         '-i',
-        `${camera.rtspurl.get(camera.liveprofile)}`,
+        `${camera.rtspurl.get(camera.liveprofile)}`, //`${camera.rtspurl.get(camera.liveprofile)}`
         '-vcodec',
         'copy',
         '-f',
         'mp4',
-        '-tune',
-        'zerolatency',
+        `-preset`, `ultrafast`,
+        `-tune`, `zerolatency`,
         '-movflags',
         'frag_keyframe+empty_moov+default_base_moof',
         'pipe:1',
@@ -191,8 +205,15 @@ router.delete('/', (req,res) => {
 });
 
 router.put('/', (req,res) => {
-    db.update({ _id:req.body.id}, {$set : req.body}, (err, numRemoved) => {
+    console.log(req.body);
+
+    const Camera = MycameraList.get(req.body.id);
+    Camera.SetLiveProfile(req.body.liveprofile);
+    Camera.SetProtocolType(req.body.protocoltype);
+
+    db.update({ _id:req.body.id}, req.body, {} , (err, numRemoved) => {
         if(err) {
+            console.log(err.message);
             res.status(500).send(err.message);
         }
         else{
@@ -201,4 +222,4 @@ router.put('/', (req,res) => {
     })
 });
 
-module.exports = router
+module.exports = router;

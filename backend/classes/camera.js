@@ -5,18 +5,19 @@ const path = require('path');
 const { PassThrough } = require('stream');
 var onvifCam = require('onvif').Cam;
 const Datastore = require('nedb');
-
+const fs = require('fs');
 //const db = new Datastore({ filename: 'db/CameraProfileDB', autoload: true });
 //const db = new Datastore({ filename: 'db/VodDB', autoload: true });
 
 class Camera extends onvifCam {
-    constructor(camname, ip, port, username, password) {
+    constructor(camname, ip, port, username, password , id) {
     super({hostname : ip, username, password, port,autoconnect:false, timeout:10000})
       this.ip = ip;
       this.port = port;
       this.username = username;
       this.password = password;
       this.cameraname = camname;
+      this.id = id;
       
       this.fluentffmpeg = new Map();
       this.ffmpegStreams = new Map();
@@ -31,6 +32,11 @@ class Camera extends onvifCam {
         this.interval = setInterval(() => {
             this.connect();
           }, 5000);
+    }
+
+    SetID(id)
+    {
+        this.id = id;
     }
 
     stop()
@@ -85,10 +91,25 @@ class Camera extends onvifCam {
                 } else {
                   stream.uri = stream.uri.slice(7);
                   this.rtspurl.set(profiles[i].name, `rtsp://${this.username}:${this.password}@`+ stream.uri);
-                  console.log("RtspUrl Map : ", this.rtspurl);
+                  if(this.protocoltype === "hls")
+                  {
+                    console.log("HLS Streaming Started")
+                    this.StartHLSStream(profiles[i].name); // hls 스트리밍일 경우 liveprofile로 hls 변환시작
+                  }
+                  //console.log("RtspUrl Map : ", this.rtspurl);
                 }
               });
             }
+            const keysToKeep = ['name']; // 제외할 키 목록
+
+            profiles.map((obj) => {
+              for (let key in obj) {
+                  if (!keysToKeep.includes(key)) {
+                  delete obj[key]; // 제외되지 않은 키 삭제
+                  }
+              }
+              });
+
             this.profilelist = profiles;
             this.Emitter.emit('profile', (profiles));
             }
@@ -103,20 +124,26 @@ class Camera extends onvifCam {
 
       const args = [
         '-i',
-        'BigBuckBunny.mp4',
+        `${this.rtspurl.get(profile)}`, //`${camera.rtspurl.get(camera.liveprofile)}`
         '-vcodec',
         'copy',
         '-f',
         'mp4',
-        '-tune',
-        'zerolatency',
+        `-preset`, `ultrafast`,
+        `-tune`, `zerolatency`,
         '-movflags',
         'frag_keyframe+empty_moov+default_base_moof',
-         'pipe:1',
+        'pipe:1',
       ];
-      
 
-      console.log(this.rtspurl.get(profile));
+      // const args = [
+      //   '-i',
+      //   `${this.rtspurl.get(profile)}`,
+      //   '-c:v', 'mpeg1video', // 비디오 코덱을 MPEG-1로 설정
+      //   '-f', 'mpegts',
+      //    'pipe:1',
+      // ];
+      
       this.fluentffmpeg.set(profile, spawn(ffmpeg_static, args));
       const childProcess = this.fluentffmpeg.get(profile);
 
@@ -137,18 +164,47 @@ class Camera extends onvifCam {
       this.ffmpegStreams.set(profile, passThrough);
     }
 
-    getFFmpegStreamMp4() {
-      const nodePath = process.execPath;
-      const scriptPath = path.resolve(__dirname, '../ffmpeg/fluent-ffmpeg_mp4.js');
-      return spawn(nodePath, [scriptPath, "BigBuckBunny.mp4"]);
-    }
-    
-
     KillFFmpegStream(profile) {
       this.fluentffmpeg[profile].kill();
       this.fluentffmpeg.delete(profile);
       this.ffmpegStreams.delete(profile);
     }
+
+    StartHLSStream(profile) {
+      const dir = `./hls/${this.id}`;
+
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      const args = [
+        '-i',
+        `${this.rtspurl.get(profile)}`, // ${this.rtspurl.get(profile)}
+        '-c:v', 'libx264', // 비디오 코덱을 MPEG-1로 설정
+        '-f', 'hls', // hls 스트리밍
+        '-hls_time', '1', // ts 파일 크기
+        `-hls_list_size`,'10', // ts파일 개수
+        `-preset`, `ultrafast`,
+        `-tune`, `zerolatency`,
+         '-hls_init_time', '1',
+        `-hls_segment_filename`, `hls/${this.id}/ts_%03d.ts`, // ts 파일 포맷 설정
+        `-hls_flags` , `delete_segments+append_list`, // ts파일 삭제
+         `hls/${this.id}/play.m3u8`, // output파일 지정
+      ];
+      
+      this.hlsProc = spawn(ffmpeg_static, args);
+
+      this.hlsProc.stderr.on('data', (data) => {
+        console.error(`FFmpeg stderr: ${data}`);
+      });
+    }
+
+    StopHLSStream()
+    {
+      this.hlsProc.kill();
+    }
+
+
 
   };
 

@@ -1,7 +1,7 @@
 import '../styles/View.css';
-import '../components/VideoPlayer'
+import ReactPlayer from 'react-player';
 import VideoPlayer from '../components/VideoPlayer';
-import VideoPlayer2 from '../components/Video';
+import '../styles/VideoGrid.css'
 import React, { useState, useEffect } from 'react';
 
 
@@ -19,13 +19,14 @@ function View() {
     console.log(json);
   }
   return (
-<body>
-  
-{data.map((camera) => (
-          <VideoPlayer videoId={camera._id}/>
-          //<VideoPlayer2 src={camera._id} />
-        ))}
-</body>
+<div className="video-grid">
+  {data.map((camera) => (
+            <div className="video-grid-item" key={camera._id}>
+            <h3 className="video-title">{camera.camname}</h3>
+            <VideoPlayer src ={camera.protocoltype === 'hls' ? `http://localhost:8000/${camera._id}/play.m3u8` : `/camera/${camera._id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} />
+            </div>
+          ))}
+</div>
     
   );
 }

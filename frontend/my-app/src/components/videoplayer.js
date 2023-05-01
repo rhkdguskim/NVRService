@@ -1,21 +1,46 @@
-import React, {useRef, useEffect} from 'react'
+import React, { useState } from 'react';
+import ReactPlayer from 'react-player';
 
-const VideoPlayer = ({videoId, profiles}) => {
-    const videoRef = useRef(null)
+const VideoPlayer = ({ src, type }) => {
+  const [playing, setPlaying] = useState(true);
+  const [buffering, setBuffering] = useState(false);
 
-    useEffect(()=>{
-        if(videoRef.current){
-            videoRef.current.pause()
-            videoRef.current.removeAttribute('src')
-            videoRef.current.load()
-        }
-    })
+  const handlePlay = () => {
+    setPlaying(true);
+  };
+
+  const handlePause = () => {
+    setPlaying(false);
+  };
+
+  const handleBuffer = () => {
+    console.log("buffer")
+    setBuffering(true);
+    setPlaying(false);
+  };
+
+  const handleBufferEnd = () => {
+    console.log("buffer end")
+    setBuffering(false);
+    setPlaying(true);
+  };
+
   return (
-    <video ref={videoRef} width='320' height='240' controls autoPlay>
-        <source src={`/camera/${videoId}`} type='video/mp4'></source>
-        Your browser does not support the video tag.
-    </video>
-  )
-}
+    <div>
+      <ReactPlayer
+        url={src}
+        type={type}
+        controls={false}
+        playing={playing}
+        //buffer={{ duration: 5 }} 
+        //bufferingProgress={0.5} 
+        //onPlay={handlePlay}
+        //onPause={handlePause}
+        //onBuffer={handleBuffer}
+        //onBufferEnd={handleBufferEnd}
+      />
+    </div>
+  );
+};
 
-export default VideoPlayer
+export default VideoPlayer;

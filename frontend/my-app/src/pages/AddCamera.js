@@ -141,7 +141,6 @@ const Cameraadd = ({user}) => {
         <FormHelperText id="camprotocol-label">Live할 프로토콜을 선택해주세요</FormHelperText>
         <MenuItem id ='mp4' value='mp4'>MP4</MenuItem>
         <MenuItem id ='hls' value='hls'>HLS</MenuItem>
-        <MenuItem id ='websocket' value='websocket'>WebSocket</MenuItem>
       </Select>
       </FormControl>
 

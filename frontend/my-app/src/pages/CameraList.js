@@ -8,10 +8,15 @@ import MenuItem from '@mui/material/MenuItem';
 
 const Cameralist = () => {
   const [data, setData] = useState([]);
+  const [selectedRow, setSelectedRow] = useState(null);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleRowClick = (params) => {
+    setSelectedRow(params.row);
+  };
 
 async function handleDelClick(params) {
   console.log(params);
@@ -35,6 +40,36 @@ async function handleModClick(params) {
     body: JSON.stringify(params.row)
   })
 }
+
+async function handleProfileComboChange (event) {
+  selectedRow.liveprofile = event.target.value;
+  console.log(selectedRow);
+  const response = await fetch("/camera/", {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(selectedRow)
+  })
+  
+  fetchData();
+  //setData("")
+}
+
+async function handleProtocolComboChange (event) {
+  selectedRow.protocoltype = event.target.value;
+  const response = await fetch("/camera/", {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(selectedRow)
+  })
+  fetchData();
+  //setData("")
+}
+
+
 
   const columns = [
     
@@ -75,9 +110,9 @@ async function handleModClick(params) {
       width: 150,
       renderCell: (params) => {
         return (
-          <Select value={params.row.liveprofile}>
+          <Select id="camprofile" value={params.row.liveprofile} onChange={handleProfileComboChange}>
             {params.row.profile.map((myfile) => (
-              <MenuItem value={myfile.name}>{myfile.name}</MenuItem>
+              <MenuItem id={myfile.name}value={myfile.name}>{myfile.name}</MenuItem>
            ))}
           </Select>
         );
@@ -89,10 +124,9 @@ async function handleModClick(params) {
       width: 150,
       renderCell: (params) => {
         return (
-          <Select value={params.row.protocoltype}>
-            <MenuItem value="mp4">MP4</MenuItem>
-            <MenuItem value="hls">HLS</MenuItem>
-            <MenuItem value="Websocket">WS</MenuItem>
+          <Select id="camprotocol" value={params.row.protocoltype} onChange={handleProtocolComboChange}>
+            <MenuItem id = "mp4" value="mp4">MP4</MenuItem>
+            <MenuItem id = "hls" value="hls">HLS</MenuItem>
           </Select>
         );
       },
@@ -131,6 +165,7 @@ async function handleModClick(params) {
     {
       const response2 = await fetch(`/camera/profile/${json[i].id}`);
       const json2 = await response2.json();
+      console.log(json2);
       json[i].profile=json2;
     }
     setData(json);
@@ -145,6 +180,8 @@ async function handleModClick(params) {
       <DataGrid
         rows={data}
         columns={columns}
+        onRowClick={handleRowClick}
+        onCellClick={handleRowClick}
         initialState={{
           pagination: {
             paginationModel: {
