@@ -10,18 +10,11 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const { PassThrough } = require('stream');
 
 expressWs(router);
 const MycameraList = new Map();
 
-
-
-// db.on('insert', (newDoc) => {
-//     console.log('insert event occurred:', newDoc);
-//     const { _id, ...rest } = newDoc;
-//     const id = _id.toString();
-//     db.update({ _id }, { $set: { ...rest, id } });
-//   });
 
 db.find({}, (err, cameras) => {
     if(err)
@@ -36,6 +29,7 @@ db.find({}, (err, cameras) => {
             Camera.SetLiveProfile(cameras[idx].liveprofile);
             Camera.SetProtocolType(cameras[idx].protocoltype);
             Camera.start();
+            Camera.StartCameraStream();
             MycameraList.set(cameras[idx].id, Camera);
         }
     }
@@ -95,9 +89,10 @@ router.post('/', (req, res) => {
         }
         else {
             const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password, id);
-            Camera.SetLiveProfile(req.body.liveprofile);
+            Camera.SetLiveProfile(req.body.liveprofile || "noprofile");
             Camera.SetProtocolType(req.body.protocoltype);
             Camera.start();
+            Camera.StartCameraStream();
             MycameraList.set(id, Camera);
             res.status(201).send(result);
         }
@@ -138,31 +133,36 @@ router.get('/', (req, res) => {
 });
 
 router.get('/hls/:id/', (req, res) => {
-    const m3u8FilePath = path.join(__dirname, `../hls/${req.params.id}`, 'play.m3u8');
-    //console.log(m3u8FilePath);
-
     console.log(`${req.params.id}/play.m3u8`);
     res.redirect(`../../../${req.params.id}/play.m3u8`);
-    // const stream = fs.createReadStream(m3u8FilePath);
-    // stream.on('error', (err) => {
-    //   console.error(err);
-    //   res.status(500).end('Internal Server Error');
-    // });
-    // res.set('Content-Type', 'application/vnd.apple.mpegurl');
-    // stream.pipe(res);
 })
 
 router.get('/:id/', (req, res) => {
 
     const camid = req.params.id;
 
-     const camera = MycameraList.get(camid);
-     console.log(camera.liveprofile);
-     console.log(camera.rtspurl.get(camera.liveprofile));
-
     res.setHeader('Connection', 'Keep-Alive');
     res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Transfer-Encoding', 'chunked');
+
+    // const camera = MycameraList.get(camid);
+    // const uuid = uuidv4();
+    // //camera.AddLiveStreamMap(uuid);
+    
+    // const stream = new PassThrough();
+    // camera.livestreamMap.set(camid, stream);
+    // //const stream = camera.livestreamMap.get(uuid);
+    // //stream.pipe(res);
+    // stream.on('data', (data) => {
+    //     console.log(data);
+    //     res.write(data);
+    //   });
+
+    // req.on('close', () => {
+    //     camera.DelLiveStreamMap(uuid);
+    //     console.log('Client disconnected');
+    // });
 
     const args = [
         '-i',
@@ -203,24 +203,28 @@ router.delete('/', (req,res) => {
 });
 
 router.put('/', (req,res) => {
-    
-    console.log(req.body);
 
+    console.log('mod');
     const Camera = MycameraList.get(req.body.id);
     Camera.SetLiveProfile(req.body.liveprofile);
     Camera.SetProtocolType(req.body.protocoltype);
-    db.findOne({ id: req.body.id }, function (err, doc) {
-        console.log(doc);
 
-        db.update({ id:req.body.id}, { $set: req.body } , {} , (err, numRemoved) => {
-            if(err) {
-                console.log(err.message);
-                res.status(500).send(err.message);
-            }
-            else{
-                res.status(201).send(numRemoved.toString());
-            }
-        })
+    db.update({ _id:req.body._id}, { $set: {
+        camname : req.body.camname,
+        ip : req.body.ip,
+        port : req.body.port,
+        username : req.body.username,
+        password : req.body.password,
+        liveprofile : req.body.liveprofile,
+        protocoltype : req.body.protocoltype,
+    } } , { upsert: false } , (err, numRemoved) => {
+        if(err) {
+            console.log(err.message);
+            res.status(500).send(err.message);
+        }
+        else{
+            res.status(201).send(numRemoved.toString());
+        }
     })
     
 });

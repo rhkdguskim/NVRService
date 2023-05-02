@@ -8,29 +8,24 @@ import MenuItem from '@mui/material/MenuItem';
 
 const Cameralist = () => {
   const [data, setData] = useState([]);
-  const [selectedRow, setSelectedRow] = useState(null);
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const handleRowClick = (params) => {
-    setSelectedRow(params.row);
-  };
-
-async function handleDelClick(params) {
-  console.log(params);
+async function handleDelClick(event, params) {
+  //console.log(params.row);
   const response = await fetch("/camera/", {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({id:params.id})
+    body: JSON.stringify({id:params.row.id})
   })
   const json = await response.json();
 }
 
-async function handleModClick(params) {
+async function handleModClick(event, params) {
   console.log(params.row);
   const response = await fetch("/camera/", {
     method: 'PUT',
@@ -41,32 +36,29 @@ async function handleModClick(params) {
   })
 }
 
-async function handleProfileComboChange (event) {
-  selectedRow.liveprofile = event.target.value;
-  console.log(selectedRow);
-  const response = await fetch("/camera/", {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(selectedRow)
-  })
-  
-  fetchData();
-  //setData("")
+async function handleProfileComboChange (event, id) {
+  console.log(event.target.value, id);
+
+  const newData = data.map((item) => {
+    if (item.id === id) {
+      return { ...item, liveprofile: event.target.value };
+    } else {
+      return item;
+    }
+  });
+  setData(newData);
 }
 
-async function handleProtocolComboChange (event) {
-  selectedRow.protocoltype = event.target.value;
-  const response = await fetch("/camera/", {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(selectedRow)
-  })
-  fetchData();
-  //setData("")
+async function handleProtocolComboChange (event, id) {
+  console.log(event.target.value, id);
+  const newData = data.map((item) => {
+    if (item.id === id) {
+      return { ...item, protocoltype: event.target.value };
+    } else {
+      return item;
+    }
+  });
+  setData(newData);
 }
 
 
@@ -110,7 +102,7 @@ async function handleProtocolComboChange (event) {
       width: 150,
       renderCell: (params) => {
         return (
-          <Select id="camprofile" value={params.row.liveprofile} onChange={handleProfileComboChange}>
+          <Select id={params.row.id} value={params.row.liveprofile} onChange={(event) => handleProfileComboChange(event, params.row.id)}>
             {params.row.profile.map((myfile) => (
               <MenuItem id={myfile.name}value={myfile.name}>{myfile.name}</MenuItem>
            ))}
@@ -124,7 +116,7 @@ async function handleProtocolComboChange (event) {
       width: 150,
       renderCell: (params) => {
         return (
-          <Select id="camprotocol" value={params.row.protocoltype} onChange={handleProtocolComboChange}>
+          <Select id={params.row.id} value={params.row.protocoltype} onChange={(event)  => handleProtocolComboChange(event, params.row.id)}>
             <MenuItem id = "mp4" value="mp4">MP4</MenuItem>
             <MenuItem id = "hls" value="hls">HLS</MenuItem>
           </Select>
@@ -137,7 +129,7 @@ async function handleProtocolComboChange (event) {
       width: 80,
       renderCell: (params) => {
         return (
-          <Button component={Link} to="/camera" variant="contained" onClick={() => handleModClick(params)}>
+          <Button component={Link} to="/camera" variant="contained" onClick={(event) => handleModClick(event, params)}>
             수정
           </Button>
         );
@@ -149,7 +141,7 @@ async function handleProtocolComboChange (event) {
       width: 80,
       renderCell: (params) => {
         return (
-          <Button component={Link} to="/camera" variant="contained" onClick={() => handleDelClick(params)}>
+          <Button component={Link} to="/camera" variant="contained" onClick={(event) => handleDelClick(event, params)}>
             삭제
           </Button>
         );
@@ -160,18 +152,18 @@ async function handleProtocolComboChange (event) {
   async function fetchData() {
     const response = await fetch('/camera/');
     const json = await response.json();
-    //setData(json);
+
     for(let i=0; i<json.length; i++)
     {
       const response2 = await fetch(`/camera/profile/${json[i].id}`);
       const json2 = await response2.json();
-      console.log(json2);
+      //console.log(json2);
       json[i].profile=json2;
     }
     setData(json);
     //const response2 = await fetch('/camera/profile/');
     //const json2 = await response.json();
-    console.log(data);
+    //console.log(data);
     };
 
     return (
@@ -180,8 +172,6 @@ async function handleProtocolComboChange (event) {
       <DataGrid
         rows={data}
         columns={columns}
-        onRowClick={handleRowClick}
-        onCellClick={handleRowClick}
         initialState={{
           pagination: {
             paginationModel: {

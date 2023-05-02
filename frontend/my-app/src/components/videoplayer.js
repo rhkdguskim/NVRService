@@ -26,12 +26,13 @@ const VideoPlayer = ({ src, type }) => {
   };
 
   return (
-    <div>
+    <div style={{ position: 'relative', width: '10%', height: '30%' }}>
       <ReactPlayer
         url={src}
         type={type}
         controls={false}
         playing={playing}
+        title="hihihihi"
         //buffer={{ duration: 5 }} 
         //bufferingProgress={0.5} 
         //onPlay={handlePlay}
@@ -39,6 +40,23 @@ const VideoPlayer = ({ src, type }) => {
         //onBuffer={handleBuffer}
         //onBufferEnd={handleBufferEnd}
       />
+        <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0,0,0,.0)',
+          color: '#0ff',
+          fontSize: '24px',
+        }}
+      >
+        Live
+      </div>
     </div>
   );
 };

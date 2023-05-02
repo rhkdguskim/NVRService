@@ -15,12 +15,11 @@ const Onvif = ({user}) => {
 
     // const camera = data.filter(data =>data.address === ip);
     const addcam = {
-      camname:"New Cam",
+      camname:params.row.name,
     ip:params.row.address, 
     port:params.row.port, 
     username:user.onvifid, 
     password:user.onvifpwd,
-    liveprofile:params.row.liveprofile,
     protocoltype:params.row.protocoltype,
   }
     const response = await fetch("/camera/", {
@@ -31,6 +30,17 @@ const Onvif = ({user}) => {
       body: JSON.stringify(addcam)
     })
     const json = await response.json();
+  }
+
+  async function handleProtocolComboChange (event, id) {
+    const newData = data.map((item) => {
+      if (item.id === id) {
+        return { ...item, protocoltype: event.target.value };
+      } else {
+        return item;
+      }
+    });
+    setData(newData);
   }
 
   useEffect(() => {
@@ -65,30 +75,12 @@ const Onvif = ({user}) => {
       width: 150,
     },
     {
-      field: 'liveprofile',
-      headerName: 'Live Profile',
-      width: 150,
-      renderCell: (params) => {
-        console.log(params.row.profile);
-        if(params.row.profile !== undefined)
-        {
-          return (
-            <Select value={"Profile1"}>
-              {params.row.profile.map((myfile) => (
-                <MenuItem value={myfile.name}>{myfile.name}</MenuItem>
-             ))}
-            </Select>
-          );
-        }
-      },
-    },
-    {
       field: 'protocoltype',
       headerName: 'Protocol Type',
       width: 150,
       renderCell: (params) => {
         return (
-          <Select value="mp4">
+          <Select value={params.row.protocoltype || "mp4"} onChange={(event)  => handleProtocolComboChange(event, params.row.id)}>
             <MenuItem value="mp4">MP4</MenuItem>
             <MenuItem value="hls">HLS</MenuItem>
           </Select>
@@ -118,29 +110,11 @@ const Onvif = ({user}) => {
     const response = await fetch('/onvif/');
     const json = await response.json();
     
-     //console.log(json);
-    
-    for(let i=0; i<json.length; i++)
-    {
-        const camera = {
-          ip:json[i].address, port:json[i].port
-      }
-
-      const response2 = await fetch("/camera/profile", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(camera)
-      })
-      const json2 = await response2.json();
-      const temp = [{name:"No Profile"}]
-      json[i].profile= json2.profiles || temp;
-      //console.log(json2.profiles);
       setData(json);
+      console.log(json);
     }
-    //console.log(json);
-  }
+    
+  
   
 
   async function fetchNetworklist() {

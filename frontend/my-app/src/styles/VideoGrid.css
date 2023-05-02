@@ -7,12 +7,9 @@
   }
   
   .video-grid-item {
-    display: flex;
+    
     flex-direction: column;
     align-items: center;
-    border: 1px solid gray;
-    padding: 10px;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
   }
   
   .video-title {
