@@ -22,7 +22,7 @@ class Camera extends onvifCam {
       this.fluentffmpeg = new Map();
       this.ffmpegStreams = new Map();
       this.rtspurl = new Map();
-
+      this.profilelist = [];
       this.Emitter = new EventEmitter();
     }
 
@@ -48,7 +48,6 @@ class Camera extends onvifCam {
     {
         if(!this.connected)
         {
-          console.log("reconnect")
           super.connect(this.Callbackfunc);
         }
           
@@ -81,14 +80,14 @@ class Camera extends onvifCam {
         this.Emitter.emit('online');
          //console.log("[Camera Connected] "+"IP: " + this.ip + ' Port: ' + this.port);
          this.getProfiles(function(err, profiles) {
-            console.log(profiles[0].$.token);
+            //console.log(profiles[0].$.token);
             if (err) {
               console.log('Error: ' + err.message);
             } else {
             for(let i=0; i<profiles.length; i++)
             {
               const profilename = profiles[i].$.token;
-              console.log(profilename);
+              //console.log(profilename);
               this.getStreamUri({
                 protocol: 'RTSP',
                 profileToken: profilename
@@ -101,25 +100,24 @@ class Camera extends onvifCam {
                   this.rtspurl.set(profilename, `rtsp://${this.username}:${this.password}@`+ stream.uri);
                   if(this.protocoltype === "hls")
                   {
-                    console.log("HLS Streaming Started")
+                    //console.log("HLS Streaming Started")
                     this.StartHLSStream(profilename); // hls 스트리밍일 경우 liveprofile로 hls 변환시작
                   }
-                  console.log("RtspUrl Map : ", this.rtspurl);
+                  //console.log("RtspUrl Map : ", this.rtspurl);
                 }
               });
             }
-            const keysToKeep = ['$'.token]; // 제외할 키 목록
+            //console.log(profiles);
+            //const keysToKeep = [$.token]; // 제외할 키 목록
 
             profiles.map((obj) => {
-              for (let key in obj) {
-                  if (!keysToKeep.includes(key)) {
-                  delete obj[key]; // 제외되지 않은 키 삭제
-                  }
+              //console.log(obj.$.token)
+              this.profilelist.push({name : obj.$.token});
               }
-              });
-            console.log(profiles);
-            this.profilelist = profiles;
-            this.Emitter.emit('profile', (profiles));
+              );
+            console.log(this.profilelist, this.ip);
+            //this.profilelist = profiles;
+            this.Emitter.emit('profile', (this.profilelist));
             }
           });
     }

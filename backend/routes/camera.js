@@ -105,7 +105,7 @@ router.post('/', (req, res) => {
 });
 
 router.post('/profile', (req, res) => {
-    const Camera = new cam("fake", req.body.ip, req.body.port , "fake", "fake");
+    const Camera = new cam("fake", req.body.ip, req.body.port , req.session.onvifid, req.session.onvifpwd);
     Camera.connect();
 
     Camera.Emitter.on("offline", () =>
