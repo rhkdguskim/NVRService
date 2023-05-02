@@ -9,19 +9,19 @@ const db = new Datastore({ filename: 'db/CameraDB', autoload: true });
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 
 expressWs(router);
 const MycameraList = new Map();
 
 
 
-db.on('insert', (newDoc) => {
-    // _id 프로퍼티를 삭제하고, id 프로퍼티를 추가합니다.
-    console.log('insert event occurred:', newDoc);
-    const { _id, ...rest } = newDoc;
-    const id = _id.toString();
-    db.update({ _id }, { $set: { ...rest, id } });
-  });
+// db.on('insert', (newDoc) => {
+//     console.log('insert event occurred:', newDoc);
+//     const { _id, ...rest } = newDoc;
+//     const id = _id.toString();
+//     db.update({ _id }, { $set: { ...rest, id } });
+//   });
 
 db.find({}, (err, cameras) => {
     if(err)
@@ -32,11 +32,11 @@ db.find({}, (err, cameras) => {
     {
         for(idx in cameras)
         {
-            const Camera = new cam(cameras[idx].camname, cameras[idx].ip, cameras[idx].port, cameras[idx].username, cameras[idx].password, cameras[idx]._id);
+            const Camera = new cam(cameras[idx].camname, cameras[idx].ip, cameras[idx].port, cameras[idx].username, cameras[idx].password, cameras[idx].id);
             Camera.SetLiveProfile(cameras[idx].liveprofile);
             Camera.SetProtocolType(cameras[idx].protocoltype);
             Camera.start();
-            MycameraList.set(cameras[idx]._id, Camera);
+            MycameraList.set(cameras[idx].id, Camera);
         }
     }
 })
@@ -76,31 +76,29 @@ router.ws('/ws/:id/:profile', (ws, req) => {
   });
 
 router.post('/', (req, res) => {
-    //console.log(req.body)
+    console.log(req.body)
+    const id = uuidv4();
     const camera = {
+        id:id,
         camname:req.body.camname,
         ip:req.body.ip,
         port:req.body.port,
         username:req.body.username,
         password:req.body.password,
-        liveprofile:req.body.liveprofile,
-        protocoltype:req.body.protocoltype,};
+        liveprofile:req.body.liveprofile || "noprofile",
+        protocoltype:req.body.protocoltype || "mp4",
+        profile:[],
+    };
     db.insert(camera, (err, result) => {
         if (err) {
             res.status(500).send(err.message);
         }
         else {
-            db.update({ _id: result._id }, { $set: { id: result._id } }, {}, (err) => {
-                if (err) {
-                  console.error(err);
-                  return;
-                }
-            });
-            const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password, result._id);
+            const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password, id);
             Camera.SetLiveProfile(req.body.liveprofile);
             Camera.SetProtocolType(req.body.protocoltype);
             Camera.start();
-            MycameraList.set(result._id, Camera);
+            MycameraList.set(id, Camera);
             res.status(201).send(result);
         }
     })
@@ -205,21 +203,26 @@ router.delete('/', (req,res) => {
 });
 
 router.put('/', (req,res) => {
+    
     console.log(req.body);
 
     const Camera = MycameraList.get(req.body.id);
     Camera.SetLiveProfile(req.body.liveprofile);
     Camera.SetProtocolType(req.body.protocoltype);
+    db.findOne({ id: req.body.id }, function (err, doc) {
+        console.log(doc);
 
-    db.update({ _id:req.body.id}, req.body, {} , (err, numRemoved) => {
-        if(err) {
-            console.log(err.message);
-            res.status(500).send(err.message);
-        }
-        else{
-            res.status(201).send(numRemoved.toString());
-        }
+        db.update({ id:req.body.id}, { $set: req.body } , {} , (err, numRemoved) => {
+            if(err) {
+                console.log(err.message);
+                res.status(500).send(err.message);
+            }
+            else{
+                res.status(201).send(numRemoved.toString());
+            }
+        })
     })
+    
 });
 
 module.exports = router;

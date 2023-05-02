@@ -47,7 +47,11 @@ class Camera extends onvifCam {
     connect()
     {
         if(!this.connected)
-            super.connect(this.Callbackfunc);
+        {
+          console.log("reconnect")
+          super.connect(this.Callbackfunc);
+        }
+          
     }
 
     SetLiveProfile(profile)
@@ -75,32 +79,36 @@ class Camera extends onvifCam {
         }
         this.connected = true;
         this.Emitter.emit('online');
-         console.log("[Camera Connected] "+"IP: " + this.ip + ' Port: ' + this.port);
+         //console.log("[Camera Connected] "+"IP: " + this.ip + ' Port: ' + this.port);
          this.getProfiles(function(err, profiles) {
+            console.log(profiles[0].$.token);
             if (err) {
               console.log('Error: ' + err.message);
             } else {
             for(let i=0; i<profiles.length; i++)
             {
+              const profilename = profiles[i].$.token;
+              console.log(profilename);
               this.getStreamUri({
                 protocol: 'RTSP',
-                profileToken: profiles[i].name
+                profileToken: profilename
               }, function(err, stream) {
                 if (err) {
                   console.log('Error: ' + err.message);
                 } else {
                   stream.uri = stream.uri.slice(7);
-                  this.rtspurl.set(profiles[i].name, `rtsp://${this.username}:${this.password}@`+ stream.uri);
+                  //console.log(`rtsp://${this.username}:${this.password}@`+ stream.uri);
+                  this.rtspurl.set(profilename, `rtsp://${this.username}:${this.password}@`+ stream.uri);
                   if(this.protocoltype === "hls")
                   {
                     console.log("HLS Streaming Started")
-                    this.StartHLSStream(profiles[i].name); // hls 스트리밍일 경우 liveprofile로 hls 변환시작
+                    this.StartHLSStream(profilename); // hls 스트리밍일 경우 liveprofile로 hls 변환시작
                   }
-                  //console.log("RtspUrl Map : ", this.rtspurl);
+                  console.log("RtspUrl Map : ", this.rtspurl);
                 }
               });
             }
-            const keysToKeep = ['name']; // 제외할 키 목록
+            const keysToKeep = ['$'.token]; // 제외할 키 목록
 
             profiles.map((obj) => {
               for (let key in obj) {
@@ -109,7 +117,7 @@ class Camera extends onvifCam {
                   }
               }
               });
-
+            console.log(profiles);
             this.profilelist = profiles;
             this.Emitter.emit('profile', (profiles));
             }
@@ -195,7 +203,7 @@ class Camera extends onvifCam {
       this.hlsProc = spawn(ffmpeg_static, args);
 
       this.hlsProc.stderr.on('data', (data) => {
-        console.error(`FFmpeg stderr: ${data}`);
+        //console.error(`FFmpeg stderr: ${data}`);
       });
     }
 

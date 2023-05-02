@@ -42,9 +42,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: new NedbStore({ filename: 'db/SessionDB' }),
-  cookie: {
-    maxAge: 30 * 60 * 1000 // 30분
-  },
+  // cookie: {
+  //   maxAge: 30 * 60 * 1000 // 30분
+  // },
 }));
 
 const requireLogin = (req, res, next) => {
@@ -60,8 +60,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],  // 허용하는 HTTP 메소드
   allowedHeaders: ['Content-Type', 'Authorization']  // 허용하는 HTTP 헤더
 }));
-app.use(express.static("hls"))
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'hls/')));
+//app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../frontend/my-app/build')));
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())

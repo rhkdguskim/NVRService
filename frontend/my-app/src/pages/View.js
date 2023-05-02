@@ -21,9 +21,9 @@ function View() {
   return (
 <div className="video-grid">
   {data.map((camera) => (
-            <div className="video-grid-item" key={camera._id}>
+            <div className="video-grid-item" key={camera.id}>
             <h3 className="video-title">{camera.camname}</h3>
-            <VideoPlayer src ={camera.protocoltype === 'hls' ? `http://localhost:8000/${camera._id}/play.m3u8` : `/camera/${camera._id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} />
+            <VideoPlayer src ={camera.protocoltype === 'hls' ? `/camera/hls/${camera.id}` : `/camera/${camera.id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} />
             </div>
           ))}
 </div>

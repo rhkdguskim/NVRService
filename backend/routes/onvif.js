@@ -6,8 +6,9 @@ var xml2js = require('xml2js')
 var stripPrefix = require('xml2js').processors.stripPrefix;
 
 var os = require('os');
+const url = require('url');
 
-let SearchCamlist = [];
+let SearchCamlist = new Map();
 
 onvif.Discovery.on('error', function(err,xml) {
 	// The ONVIF library had problems parsing some XML
@@ -54,13 +55,18 @@ onvif.Discovery.on('device', function(cam, rinfo, xml) {
             //console.log(rinfo);
             let msg = 'Discovery Reply from ' + rinfo.address + ' (' + name + ') (' + hardware + ') (' + xaddrs + ') (' + urn + ')';
             //console.log(msg)
-            SearchCamlist.push({"id":SearchCamlist.length,"address":rinfo.address,"port":rinfo.port, "name":name, "hardware":hardware});
+            const myUrl = new URL(xaddrs);
+            //console.log(SearchCamlist);
+            SearchCamlist.set(rinfo.address+":"+(myUrl.port||80), {"id":rinfo.address+":"+(myUrl.port||80),"address":rinfo.address,"port":myUrl.port || 80, "name":name, "hardware":hardware});
         }
     );
 })
 
-router.get("/", (req, res) => {
-    res.send(SearchCamlist);
+router.get("/", (req, res) => {    
+    const myArray = Array.from(SearchCamlist.values()); // Map 객체의 값들만 가져와서 배열로 변환
+    const json = JSON.stringify(myArray);
+    //console.log(json);
+    res.send(json);
  })
 
  router.get("/user", (req, res) => {
@@ -78,11 +84,13 @@ router.get("/", (req, res) => {
  })
 
  router.post("/", (req, res) => {
-    SearchCamlist = [];
-    console.log(req.body);
+    //console.log(req.body);
     var options = {device : req.body.eth, timeout : req.body.timeout};
     onvif.Discovery.probe(options);
-    res.send(SearchCamlist);
+    const myArray = Array.from(SearchCamlist.values()); // Map 객체의 값들만 가져와서 배열로 변환
+    const json = JSON.stringify(myArray);
+    //console.log(json);
+    res.send(json);
  })
 
 module.exports = router;
