@@ -12,50 +12,32 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { PassThrough } = require('stream');
 
-const MongoClient = require('mongodb').MongoClient;
-
-const url = "mongodb://localhost:27017";
-const dbName = "StreamServer";
-
 expressWs(router);
 const MycameraList = new Map();
 
-MongoClient.connect(url, function(err, db) {
-    if (err) throw err;
-    
-    console.log("hi");
-    // 데이터 조회
-    db.collection('admin').find({}).toArray(function(err, result) {
-      if (err) throw err;
+function ReloadData() {
+    db.loadDatabase();
+  }
 
-      console.log(result);
-      console.log("hi");
-      
-      // 서버 작업 수행
-    });
-  
-    // 클라이언트 객체 닫기
-    db.close();
-  });
 
-// db.find({}, (err, cameras) => {
-//     if(err)
-//     {
-//         console.log("error");
-//     }
-//     else
-//     {
-//         for(idx in cameras)
-//         {
-//             const Camera = new cam(cameras[idx].camname, cameras[idx].ip, cameras[idx].port, cameras[idx].username, cameras[idx].password, cameras[idx].id);
-//             Camera.SetLiveProfile(cameras[idx].liveprofile);
-//             Camera.SetProtocolType(cameras[idx].protocoltype);
-//             Camera.start();
-//             Camera.StartCameraStream();
-//             MycameraList.set(cameras[idx].id, Camera);
-//         }
-//     }
-// })
+db.find({}, (err, cameras) => {
+    if(err)
+    {
+        console.log("error");
+    }
+    else
+    {
+        for(idx in cameras)
+        {
+            const Camera = new cam(cameras[idx].camname, cameras[idx].ip, cameras[idx].port, cameras[idx].username, cameras[idx].password, cameras[idx].id);
+            Camera.SetLiveProfile(cameras[idx].liveprofile);
+            Camera.SetProtocolType(cameras[idx].protocoltype);
+            Camera.start();
+            Camera.StartCameraStream();
+            MycameraList.set(cameras[idx].id, Camera);
+        }
+    }
+})
 
 router.ws('/ws/:id/:profile', (ws, req) => {
     const camid = req.params.id;
@@ -105,41 +87,21 @@ router.post('/', (req, res) => {
         protocoltype:req.body.protocoltype || "mp4",
         profile:[],
     };
-
-    MongoClient.connect(url, function(err, client) {
-        if (err) throw err;
-        console.log("Connected successfully to server");
-        const db = client.db(dbName);
-
-        db.collection("camera").insertOne(
-            { camera },
-            function(err, result) {
-              if (err) throw err;
-              console.log("Document inserted");
-              res.status(201).send(result);
-            }
-          );
       
-        client.close();
-      });
-
-
-
-      
-    // db.insert(camera, (err, result) => {
-    //     if (err) {
-    //         res.status(500).send(err.message);
-    //     }
-    //     else {
-    //         const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password, id);
-    //         Camera.SetLiveProfile(req.body.liveprofile || "noprofile");
-    //         Camera.SetProtocolType(req.body.protocoltype);
-    //         Camera.start();
-    //         Camera.StartCameraStream();
-    //         MycameraList.set(id, Camera);
-    //         res.status(201).send(result);
-    //     }
-    // })
+    db.insert(camera, (err, result) => {
+        if (err) {
+            res.status(500).send(err.message);
+        }
+        else {
+            const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password, id);
+            Camera.SetLiveProfile(req.body.liveprofile || "noprofile");
+            Camera.SetProtocolType(req.body.protocoltype);
+            Camera.start();
+            Camera.StartCameraStream();
+            MycameraList.set(id, Camera);
+            res.status(201).send(result);
+        }
+    })
 });
 
 router.post('/profile', (req, res) => {
@@ -182,14 +144,34 @@ router.get('/hls/:id/', (req, res) => {
 
 router.get('/:id/', (req, res) => {
 
+    console.log("hihihi");
     const camid = req.params.id;
 
-    res.setHeader('Connection', 'Keep-Alive');
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Transfer-Encoding', 'chunked');
+    res.writeHead(200, {
+        'Content-Type': 'video/mp4',
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
 
-     const camera = MycameraList.get(camid);
+    const camera = MycameraList.get(camid);
+     //camera.StartMP4Stream();
+     const clientStream = req.pipe(new PassThrough());
+     clientStream.pipe(camera.mp4Proc.stdin, { end: false });
+    camera.mp4Proc.stdout.pipe(res);
+
+    camera.mp4Proc.stdout.on('data' , (data)  => {
+        console.log(data);
+    })
+    
+
+    //  if(camera === undefined)
+    //  {
+    //     console.log("hi");
+    //     res.status(500).send("no camera Nata");
+    //     return;
+    //  }
+     
     // const uuid = uuidv4();
     // //camera.AddLiveStreamMap(uuid);
     
@@ -207,66 +189,56 @@ router.get('/:id/', (req, res) => {
     //     console.log('Client disconnected');
     // });
 
-    const args = [
-        '-i',
-        `${camera.rtspurl.get(camera.liveprofile)}`, //`${camera.rtspurl.get(camera.liveprofile)}`
-        '-vcodec',
-        'copy',
-        '-f',
-        'mp4',
-        `-preset`, `ultrafast`,
-        `-tune`, `zerolatency`,
-        '-movflags',
-        'frag_keyframe+empty_moov+default_base_moof',
-        'pipe:1',
-      ];
+    // const args = [
+    //     //'-rtsp_transport', 'udp', // udp 설정
+    //     '-i',
+    //     `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}`
+    //     '-vcodec',
+    //     'copy',
+    //     '-f',
+    //     'mp4',
+    //     `-preset`, `ultrafast`,
+    //     `-tune`, `zerolatency`,
+    //     '-movflags',
+    //     'frag_keyframe+empty_moov+default_base_moof',
+    //     '-rtsp_flags', 'listen', // RTSP 서버로 동작
+    //     'pipe:1',
+    //   ];
       
-      const proc = spawn(ffmpeg_static, args);
+    //   const proc = spawn(ffmpeg_static, args);
       
-      proc.stdout.on('data', (data) => {
-        res.write(data);
-      });
+    //   proc.stdout.on('data', (data) => {
+    //     res.write(data);
+    //   });
 
-    req.on('close', () => {
-        proc.kill();
-        console.log('Req Client disconnected');
-    });
+    //   proc.stderr.on('data', (data) => {
+    //     console.error(`stderr: ${data}`);
+    //     //proc.kill();
+    //     //res.end();
+    //   });
 
-    res.on('close', () => {
-        proc.kill();
-        res.end();
-        console.log('Res Client disconnected');
-    });
+    // req.on('close', () => {
+    //     proc.kill();
+    //     console.log('Req Client disconnected');
+    // });
+
+    // res.on('close', () => {
+    //     proc.kill();
+    //     res.end();
+    //     console.log('Res Client disconnected');
+    // });
 });
 
 router.delete('/', (req,res) => {
-
-    MongoClient.connect(url, function(err, client) {
-        if (err) throw err;
-        console.log("Connected successfully to server");
-        const db = client.db(dbName);
-
-        db.collection("camera").deleteOne(
-            { id: req.body.id },
-            function(err, result) {
-              if (err) throw err;
-              console.log(`${result.deletedCount} document deleted`);
-              res.status(201).send(numRemoved.toString());
-            }
-          );
-      
-        client.close();
-      });
-
-    // db.remove({_id:req.body.id}, {}, (err, numRemoved) => {
-    //     if(err) {
-    //         res.status(500).send(err.message);
-    //     }
-    //     else{
-    //         MycameraList.delete(req.body.id);
-    //         res.status(201).send(numRemoved.toString());
-    //     }
-    // })
+    db.remove({_id:req.body.id}, {}, (err, numRemoved) => {
+        if(err) {
+            res.status(500).send(err.message);
+        }
+        else{
+            MycameraList.delete(req.body.id);
+            res.status(201).send(numRemoved.toString());
+        }
+    })
 });
 
 router.put('/', (req,res) => {
@@ -287,41 +259,24 @@ router.put('/', (req,res) => {
     Camera.SetLiveProfile(req.body.liveprofile);
     Camera.SetProtocolType(req.body.protocoltype);
 
-    MongoClient.connect(url, function(err, client) {
-        if (err) throw err;
-        console.log("Connected successfully to server");
-        const db = client.db(dbName);
-
-        db.collection("camera").updateOne(
-            { id: req.body.id },
-            { $set: { cam } },
-            function(err, result) {
-              if (err) throw err;
-              console.log(`${result.modifiedCount} document updated`);
-              res.status(201).send(result.modifiedCount.toString());
-            }
-          );
-      
-        client.close();
-      });
-
-    // db.update({ _id:req.body._id}, { $set: {
-    //     camname : req.body.camname,
-    //     ip : req.body.ip,
-    //     port : req.body.port,
-    //     username : req.body.username,
-    //     password : req.body.password,
-    //     liveprofile : req.body.liveprofile,
-    //     protocoltype : req.body.protocoltype,
-    // } } , { upsert: true } , (err, numRemoved) => {
-    //     if(err) {
-    //         console.log(err.message);
-    //         res.status(500).send(err.message);
-    //     }
-    //     else{
-    //         res.status(201).send(numRemoved.toString());
-    //     }
-    // })
+    db.update({ _id:req.body._id}, { $set: {
+        camname : req.body.camname,
+        ip : req.body.ip,
+        port : req.body.port,
+        username : req.body.username,
+        password : req.body.password,
+        liveprofile : req.body.liveprofile,
+        protocoltype : req.body.protocoltype,
+    } } , { upsert: true } , (err, numRemoved) => {
+        if(err) {
+            console.log(err.message);
+            res.status(500).send(err.message);
+        }
+        else{
+            res.status(201).send(numRemoved.toString());
+        }
+        ReloadData();
+    })
     
 });
 

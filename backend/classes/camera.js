@@ -116,6 +116,8 @@ class Camera extends onvifCam {
             this.Emitter.emit('profile', (this.profilelist));
             }
           });
+
+          this.StartCameraStream();
     }
 
     getFFmpegStream(profile) {
@@ -172,10 +174,11 @@ class Camera extends onvifCam {
       this.ffmpegStreams.delete(profile);
     }
     
-    StartMP4Stream(profile)
+    StartMP4Stream()
     {
       const args = [
         '-i',
+        //'-re',
         `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}` // this.rtspurl.get(profile)
         '-vcodec',
         'copy',
@@ -183,19 +186,11 @@ class Camera extends onvifCam {
         'mp4',
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
-        '-movflags',
-        'frag_keyframe+empty_moov+default_base_moof',
+        '-movflags', 'frag_keyframe+empty_moov',
         'pipe:1',
       ];
       
       this.mp4Proc = spawn(ffmpeg_static, args);
-      
-      this.mp4Proc.stdout.on('data', (data) => {  
-      for (const stream of this.livestreamMap.values()) {
-          stream.write(data);
-        }
-      });
-
     }
 
     StopMP4Stream()
@@ -250,13 +245,8 @@ class Camera extends onvifCam {
 
     StartCameraStream()
     {
-      // if(this.protocoltype === "hls") {
-      //   //console.log("HLS Streaming Started")
-      //   this.StartHLSStream(this.liveprofile); // hls 스트리밍일 경우 liveprofile로 hls 변환시작
-      // }
-      // else{
-      //   this.StartMP4Stream(this.liveprofile);
-      // }
+      console.log("stream Started");
+      this.StartMP4Stream();
     }
 
 
