@@ -32,7 +32,9 @@ const VideoPlayer = ({ src, type }) => {
         type={type}
         controls={false}
         playing={playing}
-        title="hihihihi"
+        bufferLength={5}
+        bufferWhilePaused={true}
+        lowLatency={true}
         //buffer={{ duration: 5 }} 
         //bufferingProgress={0.5} 
         //onPlay={handlePlay}
