@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactPlayer from 'react-player';
 
-const VideoPlayer = ({ src, type }) => {
+const VideoPlayer = ({ name, ip, src, type }) => {
   const [playing, setPlaying] = useState(true);
   const [buffering, setBuffering] = useState(false);
 
@@ -26,13 +26,14 @@ const VideoPlayer = ({ src, type }) => {
   };
 
   return (
-    <div style={{ position: 'relative', width: '10%', height: '10%' }}>
+    <div style={{ position: 'relative', width: '100%', height: '10%' }}>
       <ReactPlayer
         url={src}
         type={type}
         controls={false}
         playing={playing}
         lowLatency={true}
+        playsinline={true}
         //buffer={{ duration: 5 }} 
         //bufferingProgress={0.5} 
         //onPlay={handlePlay}
@@ -56,7 +57,7 @@ const VideoPlayer = ({ src, type }) => {
           fontWeight: 'bold',
         }}
       >
-        LIVE
+        LIVE : {name} : {ip}
       </div>
     </div>
   );

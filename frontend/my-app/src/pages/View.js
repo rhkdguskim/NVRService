@@ -56,7 +56,7 @@ function View() {
   const renderCamera = (camera) => {
     return (
       <div key={camera.idx} data-grid={{ w: 1, h: 1, x: 0, y: 0 }} onResizeStop={(e, d, ref, delta, position) => handleSizeChange(camera.idx, ref.clientWidth, ref.clientHeight)}>
-        <VideoPlayer src ={camera.protocoltype === 'hls' ? `/camera/hls/${camera.id}` : `/camera/${camera.id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} />
+        <VideoPlayer name = {camera.camname} ip = {camera.ip} src ={camera.protocoltype === 'hls' ? `/camera/hls/${camera.id}` : `/camera/${camera.id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} />
       </div>
     );
   };

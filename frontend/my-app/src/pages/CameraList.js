@@ -20,7 +20,7 @@ async function handleDelClick(event, params) {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({id:params.row.id})
+    body: JSON.stringify({id:params.row._id})
   })
   const json = await response.json();
 }

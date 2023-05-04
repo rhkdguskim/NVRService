@@ -79,6 +79,15 @@ class Camera extends onvifCam {
         }
         this.connected = true;
         this.Emitter.emit('online');
+
+        this.getCapabilities((err, capabilities) => {
+          if (err) {
+            console.error('Error getting media capabilities:', err);
+            return;
+          }
+          console.log(capabilities);
+        });
+      
          //console.log("[Camera Connected] "+"IP: " + this.ip + ' Port: ' + this.port);
          this.getProfiles(function(err, profiles) {
             //console.log(profiles[0].$.token);
@@ -117,7 +126,6 @@ class Camera extends onvifCam {
             }
           });
 
-          this.StartCameraStream();
     }
 
     getFFmpegStream(profile) {
@@ -179,7 +187,7 @@ class Camera extends onvifCam {
       const args = [
         '-i',
         //'-re',
-        `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}` // this.rtspurl.get(profile)
+        `${this.rtspurl.get(this.liveprofile)}`, //`${camera.rtspurl.get(camera.liveprofile)}` // this.rtspurl.get(profile)
         '-vcodec',
         'copy',
         '-f',
@@ -241,12 +249,6 @@ class Camera extends onvifCam {
     StopHLSStream()
     {
       this.hlsProc.kill();
-    }
-
-    StartCameraStream()
-    {
-      console.log("stream Started");
-      this.StartMP4Stream();
     }
 
 
