@@ -35,39 +35,38 @@ db.find({}, (err, cameras) => {
             Camera.SetLiveProfile(cameras[idx].liveprofile);
             Camera.SetProtocolType(cameras[idx].protocoltype);
             Camera.start();
-            //Camera.StartCameraStream();
             MycameraList.set(cameras[idx].id, Camera);
         }
     }
 })
 
-router.ws('/ws/:id/:profile', (ws, req) => {
+router.ws('/ws/:id/', (ws, req) => {
     const camid = req.params.id;
-    const profile = req.params.profile;
-    console.log("websocketStreaming");
-    //console.log(profile);
+    console.log("Camera WebSocket Streaming");
 
     const camera = MycameraList.get(camid);
 
-    if (!camera) {
-        console.error(`Camera ${camid} not found`);
-        return;
-      }
+    const args = [
+        '-i',
+        `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}`
+        '-f', 'mpegts', '-codec:v', 'mpeg1video', '-bf', '0', '-codec:a', 'mp2', '-r', '30',
+        'pipe:1',
+      ];
+      
+      const proc = spawn(ffmpeg_static, args);
+      
+      proc.stdout.on('data', (data) => {
+        //console.log(data);
+        ws.send(data);
+      });
 
-    camera.getFFmpegStream(profile);
-    const stream = camera.ffmpegStreams.get(profile);
-
-    stream.on('data', (data) => {
-      ws.send(data);
-    });
-
-    stream.on('end', () => {
-        console.log("Streaming ended");
-        ws.close();
-    });
+        proc.stderr.on('data', (data) => {
+            console.log(data);
+      });
 
     ws.on('close', () => {
       console.log('Client disconnected');
+      proc.kill();
     });
 
     ws.on('message', (data) => {
@@ -175,91 +174,107 @@ router.get('/capture/:id/', (req, res) => {
 
   });
 
+router.get('/mjpeg', (req, res) => {
+    //const camid = req.params.id;
+    
+    res.writeHead(200, {
+        'Content-Type': 'multipart/x-mixed-replace; boundary=frame'
+      });
+
+
+    //const camera = MycameraList.get(camid);
+    const command = ffmpeg("BigBuckBunny.mp4")
+    //.inputFormat('mp4')
+    .videoCodec('mjpeg')
+    .outputFormat('mjpeg')
+    .format('mjpeg')
+    //.format('rtsp')
+    .outputOptions([
+        '-r 25', // Set the output frame rate
+        '-s 640x480', // Set the output resolution
+        '-f mjpeg', // Force MJPEG output format
+        '-fflags nobuffer', // Disable buffer flushing
+        '-flush_packets 1' // Enable packet flushing
+    ]).on('error', (err, stdout, stderr) => {
+        console.error(`Error: ${err.message}`);
+        console.error(`ffmpeg stdout: ${stdout}`);
+        console.error(`ffmpeg stderr: ${stderr}`);
+      }).on('error', (err, stdout, stderr) => {
+        console.error(`Error: ${err.message}`);
+        console.error(`ffmpeg stdout: ${stdout}`);
+        console.error(`ffmpeg stderr: ${stderr}`);
+      })
+      command.pipe(res);
+
+});
+
 router.get('/:id/', (req, res) => {
 
     const camid = req.params.id;
-
-    res.writeHead(200, {
-        'Content-Type': 'video/mp4', // video/mp4
+    res.writeHead(200, { // video/mp4
+        'Content-Type': 'video/mp4', 
         'Transfer-Encoding': 'chunked',
-        'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
       });
 
     const camera = MycameraList.get(camid);
-    //  camera.StartMP4Stream();
-    //  const clientStream = req.pipe(new PassThrough());
-    //  clientStream.pipe(camera.mp4Proc.stdin, { end: false });
-    // camera.mp4Proc.stdout.pipe(res);
+    const command = ffmpeg(`BigBuckBunny.mp4`) // ${camera.rtspurl.get(camera.liveprofile)}
+    .videoCodec('copy')
+    .audioCodec('copy')
+    .format('mp4')
+    //.format('rtsp')
+    .outputOptions([
+      '-rtsp_transport udp',
+      '-preset realtime',
+      '-tune zerolatency',
+      '-movflags frag_keyframe+empty_moov+default_base_moof',
+      '-rtsp_flags listen'
+    ]).on('error', (err, stdout, stderr) => {
+        console.error(`Error: ${err.message}`);
+        console.error(`ffmpeg stdout: ${stdout}`);
+        console.error(`ffmpeg stderr: ${stderr}`);
+      })
+      command.pipe(res);
 
-    // camera.mp4Proc.stdout.on('data' , (data)  => {
-    //     console.log(data);
-    // })
-    
-
-    //  if(camera === undefined)
-    //  {
-    //     console.log("hi");
-    //     res.status(500).send("no camera Nata");
-    //     return;
-    //  }
-     
-    // const uuid = uuidv4();
-    // //camera.AddLiveStreamMap(uuid);
-    
-    // const stream = new PassThrough();
-    // camera.livestreamMap.set(camid, stream);
-    // //const stream = camera.livestreamMap.get(uuid);
-    // //stream.pipe(res);
-    // stream.on('data', (data) => {
-    //     console.log(data);
+    // mp4
+    // const args = [
+    //     '-rtsp_transport', 'udp', // udp 설정
+    //     '-i',
+    //     `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}`
+    //     '-vcodec',
+    //     'copy', // copy
+    //     '-f',
+    //     'mp4', // mp4
+    //     `-preset`, `realtime`,
+    //     `-tune`, `zerolatency`,
+    //     '-movflags',
+    //     'frag_keyframe+empty_moov+default_base_moof',
+    //     '-rtsp_flags', 'listen', // RTSP 서버로 동작
+    //     'pipe:1',
+    //   ];
+      
+    //   const proc = spawn(ffmpeg_static, args);
+      
+    //   proc.stdout.on('data', (data) => {
+    //     //console.log(data);
     //     res.write(data);
     //   });
 
+    //   proc.stderr.on('data', (data) => {
+
+    //   });
+
     // req.on('close', () => {
-    //     camera.DelLiveStreamMap(uuid);
-    //     console.log('Client disconnected');
+    //     proc.kill();
+    //     console.log('Req Client disconnected');
+    //     res.end();
     // });
 
-    const args = [
-        '-rtsp_transport', 'udp', // udp 설정
-        '-i',
-        `${camera.rtspurl.get(camera.liveprofile)}`, //`${camera.rtspurl.get(camera.liveprofile)}`
-        '-vcodec',
-        'copy', // copy
-        '-f',
-        'mp4', // mp4
-        `-preset`, `realtime`,
-        `-tune`, `zerolatency`,
-        '-movflags',
-        'frag_keyframe+empty_moov+default_base_moof',
-        '-rtsp_flags', 'listen', // RTSP 서버로 동작
-        'pipe:1',
-      ];
-      
-      const proc = spawn(ffmpeg_static, args);
-      
-      proc.stdout.on('data', (data) => {
-        //console.log(data);
-        res.write(data);
-      });
-
-      proc.stderr.on('data', (data) => {
-        //console.error(`stderr: ${data}`);
-        //proc.kill();
-        //res.end();
-      });
-
-    req.on('close', () => {
-        proc.kill();
-        console.log('Req Client disconnected');
-    });
-
-    res.on('close', () => {
-        proc.kill();
-        res.end();
-        console.log('Res Client disconnected');
-    });
+    // res.on('close', () => {
+    //     proc.kill();
+    //     res.end();
+    //     console.log('Res Client disconnected');
+    // });
 });
 
 router.delete('/', (req,res) => {

@@ -26,7 +26,8 @@ const VideoPlayer = ({ name, ip, src, type }) => {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '10%' }}>
+    <>
+    
       <ReactPlayer
         url={src}
         type={type}
@@ -40,26 +41,10 @@ const VideoPlayer = ({ name, ip, src, type }) => {
         //onPause={handlePause}
         //onBuffer={handleBuffer}
         //onBufferEnd={handleBufferEnd}
+        width="100%"
+        height="100%"
       />
-        <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: 'rgba(0,0,0,.0)',
-          color: '#52ff00',
-          fontSize: '18px',
-          fontWeight: 'bold',
-        }}
-      >
-        LIVE : {name} : {ip}
-      </div>
-    </div>
+    </>
   );
 };
 

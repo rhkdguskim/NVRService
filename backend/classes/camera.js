@@ -79,13 +79,12 @@ class Camera extends onvifCam {
         }
         this.connected = true;
         this.Emitter.emit('online');
-
         this.getCapabilities((err, capabilities) => {
           if (err) {
             console.error('Error getting media capabilities:', err);
             return;
           }
-          console.log(capabilities);
+          //console.log(capabilities);
         });
       
          //console.log("[Camera Connected] "+"IP: " + this.ip + ' Port: ' + this.port);
@@ -123,9 +122,9 @@ class Camera extends onvifCam {
             //console.log(this.profilelist, this.ip);
             //this.profilelist = profiles;
             this.Emitter.emit('profile', (this.profilelist));
+            //this.StartMjpegStream();
             }
           });
-
     }
 
     getFFmpegStream(profile) {
@@ -180,6 +179,35 @@ class Camera extends onvifCam {
       this.fluentffmpeg[profile].kill();
       this.fluentffmpeg.delete(profile);
       this.ffmpegStreams.delete(profile);
+    }
+
+    StartMjpegStream()
+    {
+      console.log("MjpegStarted");
+
+      const args = [
+        '-i',
+        `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}` // this.rtspurl.get(profile)
+         '-vcodec',
+         'copy',
+         '-r', '30',
+        '-f',
+        'mp4',
+        `-preset`, `ultrafast`,
+        `-tune`, `zerolatency`,
+        '-movflags', 'frag_keyframe+empty_moov',
+        'pipe:1',
+      ];
+      
+      this.mJpegProc = spawn(ffmpeg_static, args);
+
+      this.mJpegProc.stdout.on('data', (data) => {
+        //console.log(data);
+      })
+
+      this.mJpegProc.stderr.on('data', (data) => {
+         //console.error(`stderr: ${data}`);
+      });
     }
     
     StartMP4Stream()

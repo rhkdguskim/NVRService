@@ -61,7 +61,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']  // 허용하는 HTTP 헤더
 }));
 app.use(express.static(path.join(__dirname, 'hls/')));
-//app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../frontend/my-app/build')));
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
@@ -71,7 +71,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/user", user);
-app.use("/camera", requireLogin, camera);
+app.use("/camera",requireLogin, camera);
 app.use("/videos", requireLogin, videos)
 app.use("/onvif", requireLogin, onvif)
 

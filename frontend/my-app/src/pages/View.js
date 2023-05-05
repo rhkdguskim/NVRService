@@ -13,21 +13,56 @@ import Navigation from '../components/Navigation'
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 function View() {
+  const generateLayout = (cols) => {
+    let layout = [];
+    let rowIndex = 0;
+    let colIndex = 0;
+  
+    for (let i = 0; i < data.length; i++) {
+      layout.push({
+        i: `${i + 1}`,
+        x: colIndex,
+        y: rowIndex,
+        w: 1,
+        h: 1,
+      });
+  
+      colIndex++;
+  
+      if (colIndex >= cols) {
+        colIndex = 0;
+        rowIndex++;
+      }
+    }
+  
+    return layout;
+  };
+
   const [data, setData] = useState([]);
-  const [cols, setCols] = useState(3);
+  const [cols, setCols] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [layout, setLayout] = useState(generateLayout(1));
   const [breakpoints, setBreakpoints] = useState({ lg: 1000 });
 
-  const layout = [
-    { i: '1', x: 0, y: 0, w: 1, h: 1 },
-    { i: '2', x: 1, y: 0, w: 1, h: 1 },
-    { i: '3', x: 2, y: 0, w: 1, h: 1 },
-    { i: '4', x: 0, y: 1, w: 1, h: 1 },
-    { i: '5', x: 1, y: 1, w: 1, h: 1 },
-    { i: '6', x: 2, y: 1, w: 1, h: 1 },
-    { i: '7', x: 0, y: 2, w: 1, h: 1 },
-    { i: '8', x: 1, y: 2, w: 1, h: 1 },
-    { i: '9', x: 2, y: 2, w: 1, h: 1 },
-  ];
+  const calculateRowHeight = () => {
+    switch (cols) {
+      case 1:
+        return 800;
+      case 2:
+        return 400;
+      case 3:
+        return 300;
+      case 4:
+        return 200;
+      default:
+        return 400;
+    }
+  };
+
+  const updateLayout = (cols) => {
+    setCols(cols);
+    setLayout(generateLayout(cols));
+  };
 
   useEffect(() => {
     fetchData();
@@ -39,6 +74,19 @@ function View() {
 
   const handleSizeChange = (i, width, height) => {
     console.log(i, width, height);
+  };
+
+  const handleNextButtonClick = () => {
+    const totalPages = Math.ceil(data.length / (cols * cols));
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevButtonClick = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
 
@@ -53,28 +101,61 @@ function View() {
     setData(json);
   }
 
-  const renderCamera = (camera) => {
-    return (
-      <div key={camera.idx} data-grid={{ w: 1, h: 1, x: 0, y: 0 }} onResizeStop={(e, d, ref, delta, position) => handleSizeChange(camera.idx, ref.clientWidth, ref.clientHeight)}>
-        <VideoPlayer name = {camera.camname} ip = {camera.ip} src ={camera.protocoltype === 'hls' ? `/camera/hls/${camera.id}` : `/camera/${camera.id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} />
+  const renderCamera = (camera, index) => {
+    const itemsPerPage = cols * cols;
+    if (
+      index >= (currentPage - 1) * itemsPerPage &&
+      index < currentPage * itemsPerPage
+    )
+    {
+      return (
+
+        
+        <div key={camera.idx} data-grid={{ w: 1, h: 1, x: 0, y: 0 }} onResizeStop={(e, d, ref, delta, position) => handleSizeChange(camera.idx, ref.clientWidth, ref.clientHeight)} style={{ width: '100%', height: '100%' }} >
+                <div
+        style={{
+          position: 'absolute',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0, 0, 0, 0.1)', // Adjust the background opacity here
+          color: '#52ff00',
+          fontSize: '15px',
+          fontWeight: 'bold',
+          left: 0,
+          right: 0,
+          top: 0,
+        }}
+      >
+        LIVE : {camera.camname} : {camera.ip}
       </div>
-    );
-  };
+          <VideoPlayer name = {camera.camname} ip = {camera.ip} src ={camera.protocoltype === 'hls' ? `/camera/hls/${camera.id}` : `/camera/${camera.id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} style={{ width: '100%', height: '100%' }} />
+        </div>
+      );
+    };
+    return null;
+    }
+
 
   return (
     <>
-    
+    <Button onClick={() => updateLayout(1)}>1x1</Button>
+    <Button onClick={() => updateLayout(2)}>2x2</Button>
+    <Button onClick={() => updateLayout(3)}>3x3</Button>
+    <Button onClick={() => updateLayout(4)}>4x4</Button>
+    {/* <Button onClick={handleNextButtonClick}>Next</Button>
+    <Button onClick={handlePrevButtonClick}>Prev</Button> */}
 <ResponsiveGridLayout
-    className="layout"
-    breakpoints={breakpoints}
-    cols={{ lg: cols }}
-    layouts={{ lg: layout }}
-    onLayoutChange={handleLayoutChange}
-    rowHeight={400}
-    isDraggable={true}
-    isResizable={false}
+  className="layout"
+  breakpoints={breakpoints}
+  cols={{ lg: cols }}
+  layouts={{ lg: layout }}
+  onLayoutChange={handleLayoutChange}
+  rowHeight={calculateRowHeight()}
+  isDraggable={true}
+  isResizable={false}
 >
-      {data.map((camera) => renderCamera(camera))}
+      {data.map((camera, index) => renderCamera(camera, index))}
       </ResponsiveGridLayout>
     </>
 
