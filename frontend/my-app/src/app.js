@@ -23,13 +23,13 @@ function App() {
   async function fetchLogined() {
     const response = await fetch('/user/');
     const json = await response.json();
-    console.log(json);
+    //console.log(json);
     setIsLoggedIn(json.islogined)
     SetUserdata(json.user);
   }
   
   const handleLogin = (login) => {
-    console.log(login);
+    //console.log(login);
     setIsLoggedIn(login);
   };
 

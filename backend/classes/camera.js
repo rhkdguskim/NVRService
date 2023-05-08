@@ -8,6 +8,8 @@ const Datastore = require('nedb');
 const fs = require('fs');
 //const db = new Datastore({ filename: 'db/CameraProfileDB', autoload: true });
 //const db = new Datastore({ filename: 'db/VodDB', autoload: true });
+require('dotenv').config();
+const debug = process.env.DEBUG === 'true';
 
 class Camera extends onvifCam {
     constructor(camname, ip, port, username, password , id) {
@@ -19,12 +21,11 @@ class Camera extends onvifCam {
       this.cameraname = camname;
       this.id = id;
       
-      this.fluentffmpeg = new Map();
-      this.ffmpegStreams = new Map();
+      this.StreamProcess = new Map();
+
       this.rtspurl = new Map();
       this.profilelist = [];
       this.Emitter = new EventEmitter();
-      this.livestreamMap = new Map();
     }
 
     start()
@@ -62,11 +63,6 @@ class Camera extends onvifCam {
     SetProtocolType(protocol)
     {
       this.protocoltype = protocol;
-    }
-
-    StratLiveprofile()
-    {
-      this.getFFmpegStream(this.liveprofile);
     }
 
     Callbackfunc(err)
@@ -107,7 +103,8 @@ class Camera extends onvifCam {
                   stream.uri = stream.uri.slice(7);
                   //console.log(`rtsp://${this.username}:${this.password}@`+ stream.uri);
                   this.rtspurl.set(profilename, `rtsp://${this.username}:${this.password}@`+ stream.uri);
-                  //console.log("RtspUrl Map : ", this.rtspurl);
+                  if(debug)
+                    console.log("RtspUrl Map : ", this.rtspurl);
                 }
               });
             }
@@ -122,20 +119,15 @@ class Camera extends onvifCam {
             //console.log(this.profilelist, this.ip);
             //this.profilelist = profiles;
             this.Emitter.emit('profile', (this.profilelist));
-            //this.StartMjpegStream();
             }
           });
     }
 
-    getFFmpegStream(profile) {
-      if (this.ffmpegStreams.get(profile)) {
-        console.log("alreay exist");
-        return ;
-      }
+    StartMP4Stream(profile) { // MP4 Stream 생성
 
-      const args = [
+      const args =  debug ? [
         '-i',
-        `${this.rtspurl.get(profile)}`, //`${camera.rtspurl.get(camera.liveprofile)}`
+        `BigBuckBunny.mp4`,
         '-vcodec',
         'copy',
         '-f',
@@ -145,46 +137,116 @@ class Camera extends onvifCam {
         '-movflags',
         'frag_keyframe+empty_moov+default_base_moof',
         'pipe:1',
-      ];
+      ] : [
+        '-rtsp_transport','udp',
+        '-rtsp_flags', 'listen',
+        '-i',
+        `${this.rtspurl.get(profile)}`,
+        '-vcodec',
+        'copy',
+        '-f',
+        'mp4',
+        `-preset`, `ultrafast`,
+        `-tune`, `zerolatency`,
+        '-movflags',
+        'frag_keyframe+empty_moov+default_base_moof',
+        'pipe:1',
+      ]
 
-      // const args = [
-      //   '-i',
-      //   `${this.rtspurl.get(profile)}`,
-      //   '-c:v', 'mpeg1video', // 비디오 코덱을 MPEG-1로 설정
-      //   '-f', 'mpegts',
-      //    'pipe:1',
-      // ];
+      const ChildProcess = spawn(ffmpeg_static, args);
+
+      this.StreamProcess.set(profile, ChildProcess);
+
+      ChildProcess.stderr.on('data', (data) => {
+        if(debug)
+          console.log(data.toString());
+      });
+
+      ChildProcess.stdout.on('start', () => {
+        if(debug)
+          console.log("Stream Stared start");
+      });
+
+      ChildProcess.stdout.on('end', () => {
+        if(debug)
+          console.log("Stream End");
+      });
+
+      return ChildProcess;
+    }
+
+    StartHLSStream(profile) { // HLS Stream 생성
+      if(this.StreamProcess.has(profile))
+      {
+        console.log("already Exsist");
+        return this.StreamProcess.get(profile);
+      }  
+
+      const dir = `./hls/${this.id}`;
+
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      const args = debug ?  [
+        '-rtsp_transport','udp',
+        '-rtsp_flags', 'listen',
+        '-i',
+        `BigBuckBunny.mp4`, // ${this.rtspurl.get(profile)}
+        '-vcodec',
+        'copy',
+        '-f', 'hls', // hls 스트리밍
+        '-hls_time', '2', // ts 파일 크기
+        `-hls_list_size`,'10', // ts파일 개수
+        `-preset`, `ultrafast`,
+        `-tune`, `zerolatency`,
+         '-hls_init_time', '1',
+        `-hls_segment_filename`, `hls/${this.id}/ts_%03d.ts`, // ts 파일 포맷 설정
+        `-hls_flags` , `delete_segments+append_list`, // ts파일 삭제
+         `hls/${this.id}/play.m3u8`, // output파일 지정
+      ] :
+      [
+        '-rtsp_transport','udp',
+        '-rtsp_flags', 'listen',
+        '-i',
+        `${this.rtspurl.get(profile)}`, // ${this.rtspurl.get(profile)}
+        '-vcodec',
+        'copy',
+        '-f', 'hls', // hls 스트리밍
+        '-hls_time', '2', // ts 파일 크기
+        `-hls_list_size`,'10', // ts파일 개수
+        `-preset`, `ultrafast`,
+        `-tune`, `zerolatency`,
+         '-hls_init_time', '1',
+        `-hls_segment_filename`, `hls/${this.id}/ts_%03d.ts`, // ts 파일 포맷 설정
+        `-hls_flags` , `delete_segments+append_list`, // ts파일 삭제
+         `hls/${this.id}/play.m3u8`, // output파일 지정
+      ]
       
-      this.fluentffmpeg.set(profile, spawn(ffmpeg_static, args));
-      const childProcess = this.fluentffmpeg.get(profile);
+      const ChildProcess = spawn(ffmpeg_static, args);
 
-      const passThrough = new PassThrough();
-      childProcess.stdout.on('data', (data) => {
-        passThrough.write(data);
+      this.StreamProcess.set(profile, ChildProcess);
+
+      ChildProcess.stderr.on('data', (data) => {
+        if(debug)
+          console.log(data.toString());
       });
 
-      childProcess.stdout.on('start', () => {
-        console.log("Stream Stared start");
+      ChildProcess.stdout.on('start', () => {
+        if(debug)
+          console.log("Stream Stared start");
       });
 
-      childProcess.stdout.on('end', () => {
+      ChildProcess.stdout.on('end', () => {
         console.log("end");
-        passThrough.end();
+        //this.KillStreamProcess(profile);
       });
 
-      this.ffmpegStreams.set(profile, passThrough);
+      return ChildProcess;
     }
 
-    KillFFmpegStream(profile) {
-      this.fluentffmpeg[profile].kill();
-      this.fluentffmpeg.delete(profile);
-      this.ffmpegStreams.delete(profile);
-    }
-
-    StartMjpegStream()
+    StartMjpegStream(profile)
     {
-      console.log("MjpegStarted");
-
       const args = [
         '-i',
         `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}` // this.rtspurl.get(profile)
@@ -199,87 +261,23 @@ class Camera extends onvifCam {
         'pipe:1',
       ];
       
-      this.mJpegProc = spawn(ffmpeg_static, args);
+      const ChildProcess = spawn(ffmpeg_static, args);
 
-      this.mJpegProc.stdout.on('data', (data) => {
-        //console.log(data);
-      })
+      this.StreamProcess.set(profile, ChildProcess);
 
-      this.mJpegProc.stderr.on('data', (data) => {
-         //console.error(`stderr: ${data}`);
+      ChildProcess.stdout.on('start', () => {
+        console.log("Stream Stared start");
       });
-    }
-    
-    StartMP4Stream()
-    {
-      const args = [
-        '-i',
-        //'-re',
-        `${this.rtspurl.get(this.liveprofile)}`, //`${camera.rtspurl.get(camera.liveprofile)}` // this.rtspurl.get(profile)
-        '-vcodec',
-        'copy',
-        '-f',
-        'mp4',
-        `-preset`, `ultrafast`,
-        `-tune`, `zerolatency`,
-        '-movflags', 'frag_keyframe+empty_moov',
-        'pipe:1',
-      ];
-      
-      this.mp4Proc = spawn(ffmpeg_static, args);
-    }
 
-    StopMP4Stream()
-    {
-      this.mp4Proc.kill();
-    }
-
-    AddLiveStreamMap(uuid)
-    {
-      this.livestreamMap.set(uuid, new PassThrough());
-    }
-
-    DelLiveStreamMap(uuid)
-    {
-      this.livestreamMap.delete(uuid);
-    }
-
-
-    StartHLSStream(profile) {
-      const dir = `./hls/${this.id}`;
-
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      const args = [
-        '-i',
-        `${this.rtspurl.get(profile)}`, // ${this.rtspurl.get(profile)}
-        '-c:v', 'libx264', // 비디오 코덱을 MPEG-1로 설정
-        '-f', 'hls', // hls 스트리밍
-        '-hls_time', '1', // ts 파일 크기
-        `-hls_list_size`,'10', // ts파일 개수
-        `-preset`, `ultrafast`,
-        `-tune`, `zerolatency`,
-         '-hls_init_time', '1',
-        `-hls_segment_filename`, `hls/${this.id}/ts_%03d.ts`, // ts 파일 포맷 설정
-        `-hls_flags` , `delete_segments+append_list`, // ts파일 삭제
-         `hls/${this.id}/play.m3u8`, // output파일 지정
-      ];
-      
-      this.hlsProc = spawn(ffmpeg_static, args);
-
-      this.hlsProc.stderr.on('data', (data) => {
-        //console.error(`FFmpeg stderr: ${data}`);
+      ChildProcess.stdout.on('end', () => {
+        console.log("end");
       });
     }
 
-    StopHLSStream()
-    {
-      this.hlsProc.kill();
+    KillStreamProcess(profile) {
+      this.StreamProcess.get(profile).kill();
+      this.StreamProcess.delete(profile);
     }
-
-
 
   };
 

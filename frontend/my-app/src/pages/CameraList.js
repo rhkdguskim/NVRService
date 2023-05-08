@@ -8,10 +8,25 @@ import MenuItem from '@mui/material/MenuItem';
 
 const Cameralist = () => {
   const [data, setData] = useState([]);
+  const [selectedRows, setSelectedRows] = useState([]);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  async function handleModifySelectedClick() {
+    const promises = selectedRows.map((selectedRow) =>
+      fetch("/camera/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(selectedRow),
+      })
+    );
+    await Promise.all(promises);
+    fetchData();
+  }
 
 async function handleDelClick(event, params) {
   //console.log(params.row);
@@ -104,7 +119,7 @@ async function handleProtocolComboChange (event, id) {
         return (
           <Select id={params.row.id} value={params.row.liveprofile} onChange={(event) => handleProfileComboChange(event, params.row.id)}>
             {params.row.profile.map((myfile) => (
-              <MenuItem id={myfile.name}value={myfile.name}>{myfile.name}</MenuItem>
+              <MenuItem key={myfile.name} id={myfile.name}value={myfile.name}>{myfile.name}</MenuItem>
            ))}
           </Select>
         );
@@ -117,8 +132,8 @@ async function handleProtocolComboChange (event, id) {
       renderCell: (params) => {
         return (
           <Select id={params.row.id} value={params.row.protocoltype} onChange={(event)  => handleProtocolComboChange(event, params.row.id)}>
-            <MenuItem id = "mp4" value="mp4">MP4</MenuItem>
-            <MenuItem id = "hls" value="hls">HLS</MenuItem>
+            <MenuItem key='mp4' id = "mp4" value="mp4">MP4</MenuItem>
+            <MenuItem key='hls' id = "hls" value="hls">HLS</MenuItem>
           </Select>
         );
       },
@@ -168,22 +183,32 @@ async function handleProtocolComboChange (event, id) {
 
     return (
         <>
-      <Box sx={{ height: 400, width: '100%' }}>
-      <DataGrid
-        rows={data}
-        columns={columns}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 5,
-            },
+  <Box sx={{ height: 800, width: '100%' }}>
+    <DataGrid
+      rows={data}
+      columns={columns}
+      onSelectionModelChange={(newSelection) => {
+        console.log(newSelection);
+        setSelectedRows(newSelection);
+      }}
+      initialState={{
+        pagination: {
+          paginationModel: {
+            pageSize: 20,
           },
-        }}
-        pageSizeOptions={[5]}
-        checkboxSelection
-        disableRowSelectionOnClick
-      />
-    </Box>
+        },
+      }}
+      pageSizeOptions={[5, 10, 20]}
+      checkboxSelection={true}
+    />
+  </Box>
+    <Button
+  variant="contained"
+  onClick={handleModifySelectedClick}
+  disabled={selectedRows.length === 0}
+>
+  Modify Selected
+</Button>
       {/* <Table columns={columns} data={data} Deletefunc={fetchDelData} /> */}
         </>
     )

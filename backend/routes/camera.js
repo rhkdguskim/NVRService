@@ -11,6 +11,10 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { PassThrough } = require('stream');
+const { Console } = require('console');
+
+require('dotenv').config();
+const debug = process.env.DEBUG === 'true';
 
 ffmpeg.setFfmpegPath(ffmpeg_static);
 
@@ -209,72 +213,37 @@ router.get('/mjpeg', (req, res) => {
 });
 
 router.get('/:id/', (req, res) => {
-
     const camid = req.params.id;
     res.writeHead(200, { // video/mp4
         'Content-Type': 'video/mp4', 
         'Transfer-Encoding': 'chunked',
         'Connection': 'keep-alive',
       });
+     const camera = MycameraList.get(camid);
+    const childProcess = camera.StartMP4Stream(camera.liveprofile);
+    console.log(camera.liveprofile);
+    childProcess.stdout.pipe(res);
 
-    const camera = MycameraList.get(camid);
-    const command = ffmpeg(`BigBuckBunny.mp4`) // ${camera.rtspurl.get(camera.liveprofile)}
-    .videoCodec('copy')
-    .audioCodec('copy')
-    .format('mp4')
-    //.format('rtsp')
-    .outputOptions([
-      '-rtsp_transport udp',
-      '-preset realtime',
-      '-tune zerolatency',
-      '-movflags frag_keyframe+empty_moov+default_base_moof',
-      '-rtsp_flags listen'
-    ]).on('error', (err, stdout, stderr) => {
-        console.error(`Error: ${err.message}`);
-        console.error(`ffmpeg stdout: ${stdout}`);
-        console.error(`ffmpeg stderr: ${stderr}`);
-      })
-      command.pipe(res);
+    req.on('close', () => {
+        childProcess.kill();
+      });
 
-    // mp4
-    // const args = [
-    //     '-rtsp_transport', 'udp', // udp 설정
-    //     '-i',
-    //     `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}`
-    //     '-vcodec',
-    //     'copy', // copy
-    //     '-f',
-    //     'mp4', // mp4
-    //     `-preset`, `realtime`,
-    //     `-tune`, `zerolatency`,
-    //     '-movflags',
-    //     'frag_keyframe+empty_moov+default_base_moof',
-    //     '-rtsp_flags', 'listen', // RTSP 서버로 동작
-    //     'pipe:1',
-    //   ];
-      
-    //   const proc = spawn(ffmpeg_static, args);
-      
-    //   proc.stdout.on('data', (data) => {
-    //     //console.log(data);
-    //     res.write(data);
-    //   });
-
-    //   proc.stderr.on('data', (data) => {
-
-    //   });
-
-    // req.on('close', () => {
-    //     proc.kill();
-    //     console.log('Req Client disconnected');
-    //     res.end();
-    // });
-
-    // res.on('close', () => {
-    //     proc.kill();
-    //     res.end();
-    //     console.log('Res Client disconnected');
-    // });
+    // const command = ffmpeg(`BigBuckBunny.mp4`) // ${camera.rtspurl.get(camera.liveprofile)}
+    // .videoCodec('copy')
+    // .audioCodec('copy')
+    // .format('mp4')
+    // .outputOptions([
+    //   '-rtsp_transport udp',
+    //   '-preset realtime',
+    //   '-tune zerolatency',
+    //   '-movflags frag_keyframe+empty_moov+default_base_moof',
+    //   '-rtsp_flags listen'
+    // ]).on('error', (err, stdout, stderr) => {
+    //     console.error(`Error: ${err.message}`);
+    //     console.error(`ffmpeg stdout: ${stdout}`);
+    //     console.error(`ffmpeg stderr: ${stderr}`);
+    //   })
+    //   command.pipe(res);
 });
 
 router.delete('/', (req,res) => {

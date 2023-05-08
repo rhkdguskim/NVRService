@@ -2,12 +2,12 @@ import '../styles/Footer.css';
 
 function Footer() {
   return (
-<footer class="footer">
-  <div class="container">
-    <div class="footer-row">
-      <div class="footer-column">
-        <h4 class="footer-title">About Us</h4>
-        <p class="footer-text">IpCamera Streaming Server 2023 All rights reserved.</p>
+<footer className="footer">
+  <div className="container">
+    <div className="footer-row">
+      <div className="footer-column">
+        <h4 className="footer-title">About Us</h4>
+        <p className="footer-text">Footer Page</p>
       </div>
     </div>
   </div>

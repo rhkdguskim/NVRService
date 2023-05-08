@@ -27,4 +27,11 @@ module.exports = (app) => {
           changeOrigin: true,
         }),
       );
+
+      app.use(
+        createProxyMiddleware('/hls', {
+          target: 'http://localhost:8000/',
+          changeOrigin: true,
+        }),
+      );
   };

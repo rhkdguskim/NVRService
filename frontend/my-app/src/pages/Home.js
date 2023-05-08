@@ -3,9 +3,13 @@ import React, { useState, useEffect } from 'react';
 
 function Home() {
   return (
-<body>
-Body
-</body>
+    <>
+    <div>
+      <h1>Welcome to the Home Page</h1>
+      <p>This is the Home page content</p>
+    </div>
+    </>
+
     
   );
 }

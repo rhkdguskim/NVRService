@@ -11,7 +11,8 @@ const user = require("./routes/user");
 const path = require("path");
 var cors = require('cors');
 
-const PORT = 8000;
+require('dotenv').config();
+
 const app = express();
 
 var hls = new HLSServer(app, {
@@ -38,7 +39,7 @@ expressWs(app);
 expressWs(camera);
 
 app.use(session({
-  secret: 'rhkdguskim',
+  secret: process.env.SECRET,
   resave: false,
   saveUninitialized: false,
   store: new NedbStore({ filename: 'db/SessionDB' }),
@@ -71,7 +72,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/user", user);
-app.use("/camera",requireLogin, camera);
+app.use("/camera", requireLogin, camera);
 app.use("/videos", requireLogin, videos)
 app.use("/onvif", requireLogin, onvif)
 
@@ -79,6 +80,6 @@ app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../frontend/my-app/build/index.html'));
 });
 
-const server = app.listen(PORT, ()=>{
-    console.log(`server is listening on post ${PORT}`);
+const server = app.listen(process.env.PORT, ()=>{
+    console.log(`server is listening on post ${process.env.PORT}`);
 })
