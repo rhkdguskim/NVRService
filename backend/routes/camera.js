@@ -214,36 +214,19 @@ router.get('/mjpeg', (req, res) => {
 
 router.get('/:id/', (req, res) => {
     const camid = req.params.id;
+    const uuid = uuidv4();
     res.writeHead(200, { // video/mp4
         'Content-Type': 'video/mp4', 
         'Transfer-Encoding': 'chunked',
         'Connection': 'keep-alive',
       });
      const camera = MycameraList.get(camid);
-    const childProcess = camera.StartMP4Stream(camera.liveprofile);
-    console.log(camera.liveprofile);
-    childProcess.stdout.pipe(res);
+     const stream = camera.StartMP4Stream(uuid);
+    stream.pipe(res);
 
     req.on('close', () => {
-        childProcess.kill();
+        camera.StreamList.delete(uuid);
       });
-
-    // const command = ffmpeg(`BigBuckBunny.mp4`) // ${camera.rtspurl.get(camera.liveprofile)}
-    // .videoCodec('copy')
-    // .audioCodec('copy')
-    // .format('mp4')
-    // .outputOptions([
-    //   '-rtsp_transport udp',
-    //   '-preset realtime',
-    //   '-tune zerolatency',
-    //   '-movflags frag_keyframe+empty_moov+default_base_moof',
-    //   '-rtsp_flags listen'
-    // ]).on('error', (err, stdout, stderr) => {
-    //     console.error(`Error: ${err.message}`);
-    //     console.error(`ffmpeg stdout: ${stdout}`);
-    //     console.error(`ffmpeg stderr: ${stderr}`);
-    //   })
-    //   command.pipe(res);
 });
 
 router.delete('/', (req,res) => {

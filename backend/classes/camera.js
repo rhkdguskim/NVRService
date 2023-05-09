@@ -22,6 +22,7 @@ class Camera extends onvifCam {
       this.id = id;
       
       this.StreamProcess = new Map();
+      this.StreamList = new Map();
 
       this.rtspurl = new Map();
       this.profilelist = [];
@@ -119,12 +120,26 @@ class Camera extends onvifCam {
             //console.log(this.profilelist, this.ip);
             //this.profilelist = profiles;
             this.Emitter.emit('profile', (this.profilelist));
+            //console.log(this.liveprofile);
             }
           });
     }
 
-    StartMP4Stream(profile) { // MP4 Stream 생성
+    StartMP4Stream(uuid) { // MP4 Stream 생성
 
+      if(this.StreamProcess.has(this.liveprofile))
+      {
+        this.StreamProcess.get(this.liveprofile).kill();
+        this.StreamProcess.delete(this.liveprofile);
+      }
+
+      if(this.StreamList.has(uuid))
+        return this.StreamList.get(uuid);
+
+      const Stream = new PassThrough({ highWaterMark: 128 * 1024 });
+      this.StreamList.set(uuid, Stream);
+      
+      //console.log(this.rtspurl.get(this.liveprofile))
       const args =  debug ? [
         '-i',
         `BigBuckBunny.mp4`,
@@ -135,44 +150,59 @@ class Camera extends onvifCam {
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
         '-movflags',
-        'frag_keyframe+empty_moov+default_base_moof',
+        'frag_keyframe+separate_moov',
         'pipe:1',
       ] : [
+        '-i',
+        `${this.rtspurl.get(this.liveprofile)}`,
         '-rtsp_transport','udp',
         '-rtsp_flags', 'listen',
-        '-i',
-        `${this.rtspurl.get(profile)}`,
         '-vcodec',
         'copy',
-        '-f',
-        'mp4',
+        '-f' ,'mp4',
+        //'-f', 'segment',
+        //'-segment_time', '2',
+        //'-segment_format','mp4',
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
         '-movflags',
-        'frag_keyframe+empty_moov+default_base_moof',
+        'frag_keyframe+empty_moov+default_base_moof+separate_moof+omit_tfhd_offset',
         'pipe:1',
       ]
 
-      const ChildProcess = spawn(ffmpeg_static, args);
+      if(this.StreamProcess.has(this.liveprofile))
+        return Stream;
 
-      this.StreamProcess.set(profile, ChildProcess);
-
-      ChildProcess.stderr.on('data', (data) => {
-        if(debug)
-          console.log(data.toString());
+      const ChildProcess = spawn(ffmpeg_static, args, {
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
 
+      this.StreamProcess.set(this.liveprofile, ChildProcess);
+
+      ChildProcess.stderr.on('data', (data) => {
+          //console.log(data.toString());
+      });
+
+      ChildProcess.stdout.on('data', (data) => {
+        const streamProcess = this.StreamProcess.get(this.liveprofile);
+        if(streamProcess === ChildProcess) {
+          this.StreamList.forEach((value, key) => {
+            //console.log(key + " Streaming");
+            value.write(data);
+          });
+        }
+    });
+
       ChildProcess.stdout.on('start', () => {
-        if(debug)
           console.log("Stream Stared start");
       });
 
       ChildProcess.stdout.on('end', () => {
-        if(debug)
           console.log("Stream End");
       });
 
-      return ChildProcess;
+      return Stream;
     }
 
     StartHLSStream(profile) { // HLS Stream 생성
@@ -223,7 +253,9 @@ class Camera extends onvifCam {
          `hls/${this.id}/play.m3u8`, // output파일 지정
       ]
       
-      const ChildProcess = spawn(ffmpeg_static, args);
+      const ChildProcess = spawn(ffmpeg_static, args, {
+        windowsHide: true
+      });
 
       this.StreamProcess.set(profile, ChildProcess);
 
