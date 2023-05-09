@@ -12,6 +12,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { PassThrough } = require('stream');
 const { Console } = require('console');
+const { Binary } = require('bson');
 
 require('dotenv').config();
 const debug = process.env.DEBUG === 'true';
@@ -46,40 +47,29 @@ db.find({}, (err, cameras) => {
 
 router.ws('/ws/:id/', (ws, req) => {
     const camid = req.params.id;
+    const uuid = uuidv4();
     console.log("Camera WebSocket Streaming");
-
     const camera = MycameraList.get(camid);
+    // camera.StartMjpegStream(camera.liveprofile);
+    camera.StreamList.set(uuid, new PassThrough());
+    const stream = camera.StreamList.get(uuid);
 
-    const args = [
-        '-i',
-        `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}`
-        '-f', 'mpegts', '-codec:v', 'mpeg1video', '-bf', '0', '-codec:a', 'mp2', '-r', '30',
-        'pipe:1',
-      ];
-      
-      const proc = spawn(ffmpeg_static, args);
-      
-      proc.stdout.on('data', (data) => {
-        //console.log(data);
-        ws.send(data);
-      });
-
-        proc.stderr.on('data', (data) => {
-            console.log(data);
+    stream.on('data', (data) => {
+         ws.send(data, {binary:true});
       });
 
     ws.on('close', () => {
+      camera.StreamList.delete(uuid);
       console.log('Client disconnected');
-      proc.kill();
     });
 
     ws.on('message', (data) => {
-        console.log(data);
+        console.log("From Client : "+data);
     })
   });
 
 router.post('/', (req, res) => {
-    console.log(req.body)
+    //console.log(req.body)
     const id = uuidv4();
     const camera = {
         id:id,
@@ -147,11 +137,6 @@ router.get('/', (req, res) => {
     })
 });
 
-router.get('/hls/:id/', (req, res) => {
-    console.log(`${req.params.id}/play.m3u8`);
-    res.redirect(`../../../${req.params.id}/play.m3u8`);
-})
-
 router.get('/capture/:id/', (req, res) => {
     //res.set('Content-Type', 'image/jpeg');
     camid = req.params.id;
@@ -178,64 +163,56 @@ router.get('/capture/:id/', (req, res) => {
 
   });
 
-router.get('/mjpeg', (req, res) => {
-    //const camid = req.params.id;
-    
-    res.writeHead(200, {
-        'Content-Type': 'multipart/x-mixed-replace; boundary=frame'
-      });
-
-
-    //const camera = MycameraList.get(camid);
-    const command = ffmpeg("BigBuckBunny.mp4")
-    //.inputFormat('mp4')
-    .videoCodec('mjpeg')
-    .outputFormat('mjpeg')
-    .format('mjpeg')
-    //.format('rtsp')
-    .outputOptions([
-        '-r 25', // Set the output frame rate
-        '-s 640x480', // Set the output resolution
-        '-f mjpeg', // Force MJPEG output format
-        '-fflags nobuffer', // Disable buffer flushing
-        '-flush_packets 1' // Enable packet flushing
-    ]).on('error', (err, stdout, stderr) => {
-        console.error(`Error: ${err.message}`);
-        console.error(`ffmpeg stdout: ${stdout}`);
-        console.error(`ffmpeg stderr: ${stderr}`);
-      }).on('error', (err, stdout, stderr) => {
-        console.error(`Error: ${err.message}`);
-        console.error(`ffmpeg stdout: ${stdout}`);
-        console.error(`ffmpeg stderr: ${stderr}`);
-      })
-      command.pipe(res);
-
-});
-
 router.get('/:id/', (req, res) => {
     const camid = req.params.id;
     const uuid = uuidv4();
-    res.writeHead(200, { // video/mp4
-        'Content-Type': 'video/mp4', 
-        'Transfer-Encoding': 'chunked',
-        'Connection': 'keep-alive',
-      });
-     const camera = MycameraList.get(camid);
-     const stream = camera.StartMP4Stream(uuid);
-     stream.pipe(res);
+    const camera = MycameraList.get(camid);
+    
+    if(camera.protocoltype === 'mp4') {
+        res.writeHead(200, { // video/mp4
+            'Content-Type': 'video/mp4', 
+            'Transfer-Encoding': 'chunked',
+            'Connection': 'keep-alive',
+          });
 
-    req.on('close', () => {
-        camera.StreamList.delete(uuid);
-      });
+        const stream = camera.StartMP4Stream(uuid);
+        stream.pipe(res);
+     
+         req.on('close', () => {
+             camera.StreamList.delete(uuid);
+         });
+    }
+    else {
+        res.writeHead(200, { // video/mp2t
+            'Content-Type': 'video/mp2t',
+            'Content-Disposition': 'inline',
+            'Transfer-Encoding': 'chunked',
+            'Connection': 'keep-alive'
+          });
+
+          camera.StreamList.set(uuid, new PassThrough());
+          const stream = camera.StreamList.get(uuid);
+
+          stream.on('data', (data) => {
+            res.write(data);
+         });
+
+         req.on('close', () => {
+            camera.StreamList.delete(uuid);
+        });
+         
+    }
+
 });
 
 router.delete('/', (req,res) => {
-    db.remove({_id:req.body.id}, {}, (err, numRemoved) => {
+    db.remove({id:req.body.id}, {}, (err, numRemoved) => {
         if(err) {
             res.status(500).send(err.message);
         }
         else{
-            //MycameraList.get(req.body.id).stop();
+            const camera = MycameraList.get(req.body.id);
+            camera.stop();
             MycameraList.delete(req.body.id);
             res.status(201).send(numRemoved.toString());
         }
@@ -265,6 +242,7 @@ router.put('/', (req,res) => {
     Camera.SetLiveProfile(req.body.liveprofile);
     Camera.SetProtocolType(req.body.protocoltype);
     Camera.stop();
+    Camera.connected = false;
     Camera.start();
 
     db.update({ _id:req.body._id}, { $set: {

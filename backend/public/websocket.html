@@ -12,7 +12,7 @@
     const videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.src = URL.createObjectURL(mediaSource);
 
-    const socket = new WebSocket('ws://localhost:8000/camera/ws/jfYrgg3CCBw72SS9/main');
+    const socket = new WebSocket('ws://localhost:8000/camera/ws/f1b3040e-b291-45bc-9b59-e469191e0892');
     socket.binaryType = 'blob';
 
     socket.onopen = function(event) {

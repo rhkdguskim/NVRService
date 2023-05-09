@@ -1,10 +1,37 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
+import JsmpegPlayer from '../components/JsmpegPlayer';
 
-const VideoPlayer = ({ name, ip, src, type }) => {
+const VideoPlayer = ({camid, type }) => {
   const [playing, setPlaying] = useState(true);
+  const [streamType, SetStreamType] = useState('mp4');
+  const [streamSrc, SetStreamSrc] = useState('');
   const [buffering, setBuffering] = useState(false);
   const playerRef = useRef(null);
+  const hostname = window.location.hostname;
+
+  let jsmpegPlayer = null;
+
+  useEffect(() => {
+    switch(type)
+    {
+      case "mp4":
+        SetStreamType('video/mp4');
+        SetStreamSrc(`/camera/${camid}`)
+        break;
+      case "hls":
+        SetStreamType('application/x-mpegURL');
+        SetStreamSrc(`/${camid}/play.m3u8`)
+        break;
+      case "mjpeg":
+        
+        SetStreamType('video/mp2t');
+        SetStreamSrc(`ws://${hostname}:8000/camera/ws/${camid}`)
+        break;
+    }
+  }, []);
+
+
 
   const handlePlay = () => {
     setPlaying(true);
@@ -34,10 +61,11 @@ const VideoPlayer = ({ name, ip, src, type }) => {
 
   return (
     <>
-    
-      <ReactPlayer
-        url={src}
-        type={type}
+    {type === 'mjpeg' ? <JsmpegPlayer
+          videoUrl={`ws://${hostname}:8000/camera/ws/${camid}`}
+        /> : <ReactPlayer
+        url={streamSrc}
+        type={streamType}
         controls={false}
         playing={playing}
         lowLatency={true}
@@ -45,13 +73,14 @@ const VideoPlayer = ({ name, ip, src, type }) => {
         ref={playerRef}
         //buffer={{ duration: 5 }} 
         //bufferingProgress={0.5} 
-        onPlay={handleSeekToEnd}
+        //onPlay={handleSeekToEnd}
         //onPause={handlePause}
         //onBuffer={handleBuffer}
         //onBufferEnd={handleBufferEnd}
         width="100%"
         height="100%"
-      />
+      />}
+      
     </>
   );
 };

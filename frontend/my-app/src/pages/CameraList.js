@@ -35,7 +35,7 @@ async function handleDelClick(event, params) {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({id:params.row._id})
+    body: JSON.stringify({id:params.row.id})
   })
   const json = await response.json();
 }
@@ -134,6 +134,8 @@ async function handleProtocolComboChange (event, id) {
           <Select id={params.row.id} value={params.row.protocoltype} onChange={(event)  => handleProtocolComboChange(event, params.row.id)}>
             <MenuItem key='mp4' id = "mp4" value="mp4">MP4</MenuItem>
             <MenuItem key='hls' id = "hls" value="hls">HLS</MenuItem>
+            <MenuItem key='mjpeg' id = "mjpeg" value="mjpeg">MJPEG</MenuItem>
+            
           </Select>
         );
       },

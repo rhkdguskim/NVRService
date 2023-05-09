@@ -1,5 +1,5 @@
 import '../styles/View.css';
-import VideoPlayer from '../components/VideoPlayer';
+import VideoPlayer from '../components/videoplayer';
 import '../styles/VideoGrid.css'
 import React, { useState, useEffect } from 'react';
 import {GridLayout, Responsive, WidthProvider} from 'react-grid-layout';
@@ -105,7 +105,7 @@ function View() {
   async function fetchData() {
     const response = await fetch('/camera/');
     const json = await response.json();
-    //console.log(json);
+    console.log(json);
     setData(json);
   }
 
@@ -136,7 +136,7 @@ function View() {
         >
           LIVE : {camera.camname} : {camera.ip}
         </div>
-          <VideoPlayer name = {camera.camname} ip = {camera.ip} src ={camera.protocoltype === 'hls' ? `/${camera.id}/play.m3u8` : `/camera/${camera.id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} style={{ width: '100%', height: '100%' }} />
+        <VideoPlayer camid ={camera.id} type={camera.protocoltype} style={{ width: '100%', height: '100%' }} />
         </div>
       );
     };
@@ -166,6 +166,7 @@ function View() {
       {data.map((camera, index) => renderCamera(camera, index))}
       </ResponsiveGridLayout>
     </>
+    
 
     
   );

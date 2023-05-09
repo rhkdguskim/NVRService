@@ -107,8 +107,21 @@ class Camera extends onvifCam {
                   stream.uri = stream.uri.slice(7);
                   //console.log(`rtsp://${this.username}:${this.password}@`+ stream.uri);
                   this.rtspurl.set(profilename, `rtsp://${this.username}:${this.password}@`+ stream.uri);
-                  if(this.liveprofile === profilename && this.protocoltype === 'hls')
-                    this.StartHLSStream(profilename);
+                  if(this.liveprofile === profilename) {
+                    this.KillStreamProcess();
+                    switch(this.protocoltype)
+                    {
+                        case "hls":
+                          console.log("HLS Started");
+                          this.StartHLSStream(profilename);
+                          break;
+                        case "mjpeg" :
+                          console.log("MJPEG Started")
+                          this.StartMjpegStream(profilename);
+                    }
+                  }
+                  
+                    
                   if(debug)
                     console.log("RtspUrl Map : ", this.rtspurl);
                 }
@@ -155,7 +168,7 @@ class Camera extends onvifCam {
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
         '-movflags',
-        'frag_keyframe+separate_moov',
+        'frag_keyframe+empty_moov+default_base_moof+separate_moof+omit_tfhd_offset',
         'pipe:1',
       ] : [
         '-i',
@@ -188,13 +201,9 @@ class Camera extends onvifCam {
       });
 
       ChildProcess.stdout.on('data', (data) => {
-        const streamProcess = this.StreamProcess.get(this.liveprofile);
-        if(streamProcess === ChildProcess) {
-          this.StreamList.forEach((value, key) => {
-            //console.log(key + " Streaming");
-            value.write(data);
-          });
-        }
+        this.StreamList.forEach((value, key) => {
+          value.write(data);
+        });
     });
 
       ChildProcess.stdout.on('start', () => {
@@ -222,19 +231,17 @@ class Camera extends onvifCam {
       }
 
       const args = debug ?  [
-        '-rtsp_transport','udp',
-        '-rtsp_flags', 'listen',
         '-i',
         `BigBuckBunny.mp4`, // ${this.rtspurl.get(profile)}
         '-vcodec',
         'copy',
         '-f', 'hls', // hls 스트리밍
         '-aspect', '16:9',
-        '-hls_time', '1', // ts 파일 크기
+        '-hls_time', '3', // ts 파일 크기
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
-        `-hls_list_size`,'3', // ts파일 개수
-        '-hls_init_time', '1',
+        `-hls_list_size`,'5', // ts파일 개수
+        '-hls_init_time', '2',
         `-hls_segment_filename`, `hls/${this.id}/ts_%03d.ts`, // ts 파일 포맷 설정
         `-hls_flags` , `delete_segments+append_list`, // ts파일 삭제
          `hls/${this.id}/play.m3u8`, // output파일 지정
@@ -250,8 +257,8 @@ class Camera extends onvifCam {
         '-aspect', '16:9',
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
-        '-hls_time', '1', // ts 파일 크기
-        `-hls_list_size`,'1', // ts파일 개수
+        '-hls_time', '2', // ts 파일 크기
+        `-hls_list_size`,'5', // ts파일 개수
          '-hls_init_time', '1',
         `-hls_segment_filename`, `hls/${this.id}/ts_%03d.ts`, // ts 파일 포맷 설정
         `-hls_flags` , `delete_segments+append_list`, // ts파일 삭제
@@ -282,36 +289,65 @@ class Camera extends onvifCam {
 
     StartMjpegStream(profile)
     {
-      const args = [
+      const args = debug ? [
         '-i',
-        `BigBuckBunny.mp4`, //`${camera.rtspurl.get(camera.liveprofile)}` // this.rtspurl.get(profile)
-         '-vcodec',
-         'copy',
-         '-r', '30',
+        `BigBuckBunny.mp4`,
+        '-rtsp_transport','udp',
+        '-rtsp_flags', 'listen',
         '-f',
-        'mp4',
-        `-preset`, `ultrafast`,
-        `-tune`, `zerolatency`,
-        '-movflags', 'frag_keyframe+empty_moov',
+        'mpegts',
+        '-codec:v',
+        'mpeg1video',
+        '-r',
+        '30',
+        '-codec:a',
+        'mp2',
         'pipe:1',
-      ];
+      ] :
+      [
+        '-i',
+        `${camera.rtspurl.get(camera.liveprofile)}`,
+        '-rtsp_transport','udp',
+        '-rtsp_flags', 'listen',
+        '-f',
+        'mpegts',
+        '-codec:v',
+        'mpeg1video',
+        '-codec:a',
+        'mp2',
+        'pipe:1',
+      ]
       
       const ChildProcess = spawn(ffmpeg_static, args);
 
       this.StreamProcess.set(profile, ChildProcess);
 
+      ChildProcess.stdout.on('data', (data) => {
+        this.StreamList.forEach((value, key) => {
+          //console.log(key + " Streaming");
+          value.write(data);
+        });
+    });
+
+      ChildProcess.stderr.on('data', (data) => {
+        //console.log(data.toString());
+    });
+
       ChildProcess.stdout.on('start', () => {
-        console.log("Stream Stared start");
+        //console.log("Stream Stared start");
       });
 
       ChildProcess.stdout.on('end', () => {
-        console.log("end");
+        //console.log("end");
       });
     }
 
-    KillStreamProcess(profile) {
-      this.StreamProcess.get(profile).kill();
-      this.StreamProcess.delete(profile);
+    KillStreamProcess() {
+      this.StreamProcess.forEach((stream) => {
+        stream.kill();
+      });
+      this.StreamList.clear();
+      this.StreamProcess.clear();
     }
 
   };
