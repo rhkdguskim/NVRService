@@ -17,7 +17,9 @@ function VideoPlayer({ videoUrl }) {
     };
   }, [videoUrl]);
 
-  return <canvas ref={videoCanvasRef} style={{ width: '100%', height: '100%' }} />;
+  return <div style={{ width: '100%', height: '100%' }}>
+    <canvas ref={videoCanvasRef} style={{ width: '100%', height: '100%' }} />
+    </div>
 }
 
 export default VideoPlayer;

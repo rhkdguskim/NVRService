@@ -118,7 +118,7 @@ function View() {
     {
       //console.log(index);
       return (
-        <div key={index} onResizeStop={(e, d, ref, delta, position) => handleSizeChange(camera.idx, ref.clientWidth, ref.clientHeight)} style={{ width: '100%', height: '100%' }} >
+        <div key={index} onResizeStop={(e, d, ref, delta, position) => handleSizeChange(camera.idx, ref.clientWidth, ref.clientHeight)} style={{top: 0, left: 0, width: '100%', height: '100%' }} >
           <div
           style={{
             position: 'absolute',
