@@ -136,7 +136,7 @@ function View() {
         >
           LIVE : {camera.camname} : {camera.ip}
         </div>
-          <VideoPlayer name = {camera.camname} ip = {camera.ip} src ={camera.protocoltype === 'hls' ? `/camera/hls/${camera.id}` : `/camera/${camera.id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} style={{ width: '100%', height: '100%' }} />
+          <VideoPlayer name = {camera.camname} ip = {camera.ip} src ={camera.protocoltype === 'hls' ? `/${camera.id}/play.m3u8` : `/camera/${camera.id}`} type={camera.protocoltype === 'hls' ? 'application/x-mpegURL' : 'video/mp4'} style={{ width: '100%', height: '100%' }} />
         </div>
       );
     };

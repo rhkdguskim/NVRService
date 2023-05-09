@@ -45,6 +45,9 @@ class Camera extends onvifCam {
     stop()
     {
         clearInterval(this.interval);
+        this.StreamProcess.forEach( (stream) => {
+          stream.kill();
+        })
     }
 
     connect()
@@ -104,6 +107,8 @@ class Camera extends onvifCam {
                   stream.uri = stream.uri.slice(7);
                   //console.log(`rtsp://${this.username}:${this.password}@`+ stream.uri);
                   this.rtspurl.set(profilename, `rtsp://${this.username}:${this.password}@`+ stream.uri);
+                  if(this.liveprofile === profilename && this.protocoltype === 'hls')
+                    this.StartHLSStream(profilename);
                   if(debug)
                     console.log("RtspUrl Map : ", this.rtspurl);
                 }
@@ -160,9 +165,7 @@ class Camera extends onvifCam {
         '-vcodec',
         'copy',
         '-f' ,'mp4',
-        //'-f', 'segment',
-        //'-segment_time', '2',
-        //'-segment_format','mp4',
+        '-aspect', '16:9',
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
         '-movflags',
@@ -226,27 +229,29 @@ class Camera extends onvifCam {
         '-vcodec',
         'copy',
         '-f', 'hls', // hls 스트리밍
-        '-hls_time', '2', // ts 파일 크기
-        `-hls_list_size`,'10', // ts파일 개수
+        '-aspect', '16:9',
+        '-hls_time', '1', // ts 파일 크기
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
-         '-hls_init_time', '1',
+        `-hls_list_size`,'3', // ts파일 개수
+        '-hls_init_time', '1',
         `-hls_segment_filename`, `hls/${this.id}/ts_%03d.ts`, // ts 파일 포맷 설정
         `-hls_flags` , `delete_segments+append_list`, // ts파일 삭제
          `hls/${this.id}/play.m3u8`, // output파일 지정
       ] :
       [
-        '-rtsp_transport','udp',
-        '-rtsp_flags', 'listen',
         '-i',
         `${this.rtspurl.get(profile)}`, // ${this.rtspurl.get(profile)}
+        '-rtsp_transport','udp',
+        '-rtsp_flags', 'listen',
         '-vcodec',
         'copy',
         '-f', 'hls', // hls 스트리밍
-        '-hls_time', '2', // ts 파일 크기
-        `-hls_list_size`,'10', // ts파일 개수
+        '-aspect', '16:9',
         `-preset`, `ultrafast`,
         `-tune`, `zerolatency`,
+        '-hls_time', '1', // ts 파일 크기
+        `-hls_list_size`,'1', // ts파일 개수
          '-hls_init_time', '1',
         `-hls_segment_filename`, `hls/${this.id}/ts_%03d.ts`, // ts 파일 포맷 설정
         `-hls_flags` , `delete_segments+append_list`, // ts파일 삭제
@@ -260,12 +265,10 @@ class Camera extends onvifCam {
       this.StreamProcess.set(profile, ChildProcess);
 
       ChildProcess.stderr.on('data', (data) => {
-        if(debug)
-          console.log(data.toString());
+          //console.log(data.toString());
       });
 
       ChildProcess.stdout.on('start', () => {
-        if(debug)
           console.log("Stream Stared start");
       });
 

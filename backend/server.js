@@ -11,6 +11,8 @@ const user = require("./routes/user");
 const path = require("path");
 var cors = require('cors');
 
+process.env.UV_THREADPOOL_SIZE = 16;
+
 require('dotenv').config();
 
 const app = express();

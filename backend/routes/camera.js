@@ -222,7 +222,7 @@ router.get('/:id/', (req, res) => {
       });
      const camera = MycameraList.get(camid);
      const stream = camera.StartMP4Stream(uuid);
-    stream.pipe(res);
+     stream.pipe(res);
 
     req.on('close', () => {
         camera.StreamList.delete(uuid);
@@ -235,6 +235,7 @@ router.delete('/', (req,res) => {
             res.status(500).send(err.message);
         }
         else{
+            //MycameraList.get(req.body.id).stop();
             MycameraList.delete(req.body.id);
             res.status(201).send(numRemoved.toString());
         }
@@ -256,8 +257,15 @@ router.put('/', (req,res) => {
 
     console.log('mod');
     const Camera = MycameraList.get(req.body.id);
+    Camera.ip = req.body.ip;
+    Camera.port = req.body.port;
+    Camera.username = req.body.username;
+    Camera.password = req.body.password;
+    Camera.cameraname = req.body.camname;
     Camera.SetLiveProfile(req.body.liveprofile);
     Camera.SetProtocolType(req.body.protocoltype);
+    Camera.stop();
+    Camera.start();
 
     db.update({ _id:req.body._id}, { $set: {
         camname : req.body.camname,

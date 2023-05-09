@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 
 const VideoPlayer = ({ name, ip, src, type }) => {
   const [playing, setPlaying] = useState(true);
   const [buffering, setBuffering] = useState(false);
+  const playerRef = useRef(null);
 
   const handlePlay = () => {
     setPlaying(true);
@@ -25,6 +26,12 @@ const VideoPlayer = ({ name, ip, src, type }) => {
     setPlaying(true);
   };
 
+  const handleSeekToEnd = () => {
+    const duration = playerRef.current.getDuration();
+    playerRef.current.seekTo(duration);
+    console.log(duration);
+  }
+
   return (
     <>
     
@@ -35,9 +42,10 @@ const VideoPlayer = ({ name, ip, src, type }) => {
         playing={playing}
         lowLatency={true}
         playsinline={true}
+        ref={playerRef}
         //buffer={{ duration: 5 }} 
         //bufferingProgress={0.5} 
-        //onPlay={handlePlay}
+        onPlay={handleSeekToEnd}
         //onPause={handlePause}
         //onBuffer={handleBuffer}
         //onBufferEnd={handleBufferEnd}
