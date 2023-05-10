@@ -9,6 +9,7 @@ import MenuItem from '@mui/material/MenuItem';
 const Onvif = ({user}) => {
   const [data, setData] = useState([]);
   const [networklist, setnetworklist] = useState([]);
+  const [network, setnetwork] = useState('None');
 
   async function handleAddClick(params) {
     console.log(params);
@@ -83,6 +84,7 @@ const Onvif = ({user}) => {
           <Select value={params.row.protocoltype || "mp4"} onChange={(event)  => handleProtocolComboChange(event, params.row.id)}>
             <MenuItem value="mp4">MP4</MenuItem>
             <MenuItem value="hls">HLS</MenuItem>
+            <MenuItem value="mjpeg">MJPEG</MenuItem>
           </Select>
         );
       },
@@ -103,7 +105,7 @@ const Onvif = ({user}) => {
 
   const handleChangeSelect = (e) =>
   {
-    //console.log(e.target.value)
+    setnetwork(e.target.value);
     fetchOnvif(e.target.value);
   }
   async function fetchData() {
@@ -111,7 +113,6 @@ const Onvif = ({user}) => {
     const json = await response.json();
     
       setData(json);
-      console.log(json);
     }
     
   
@@ -121,6 +122,8 @@ const Onvif = ({user}) => {
     const response = await fetch('/onvif/networklist');
     const json = await response.json();
     setnetworklist(json);
+    console.log(json);
+    setnetwork(json[0].name || "None");
   }
 
   async function fetchOnvif(data) {
@@ -152,12 +155,15 @@ const Onvif = ({user}) => {
       />
     </Box>
       <br></br>
-      <select onChange={handleChangeSelect}>
-      {networklist.map((network) => (
-          <option key={network.name} value={network.name}>{network.name}</option>
+
+      <Select value={network} onChange={handleChangeSelect}>
+        {networklist.map((network) => (
+          <MenuItem key={network.name} value={network.name}>{network.name}</MenuItem>
         ))}
-      </select>
-      <button onClick={fetchData}>Refresh</button>
+      </Select>
+      <Button variant="contained" onClick={fetchData}>
+            재탐색
+      </Button>
         </>
     )
 }

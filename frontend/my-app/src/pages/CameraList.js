@@ -5,10 +5,12 @@ import Button from '@mui/material/Button';
 import {Link} from 'react-router-dom';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import '../styles/Loading.css';  // import 하려는 CSS 파일 경로를 작성합니다.
 
 const Cameralist = () => {
   const [data, setData] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -167,20 +169,18 @@ async function handleProtocolComboChange (event, id) {
   ];
 
   async function fetchData() {
+    setIsLoading(true);
     const response = await fetch('/camera/');
     const json = await response.json();
-
+      
     for(let i=0; i<json.length; i++)
     {
       const response2 = await fetch(`/camera/profile/${json[i].id}`);
       const json2 = await response2.json();
-      //console.log(json2);
       json[i].profile=json2;
     }
     setData(json);
-    //const response2 = await fetch('/camera/profile/');
-    //const json2 = await response.json();
-    //console.log(data);
+    setIsLoading(false);
     };
 
     return (
@@ -202,6 +202,11 @@ async function handleProtocolComboChange (event, id) {
       }}
       pageSizeOptions={[5, 10, 20]}
       checkboxSelection={true}
+      components={{
+        NoRowsOverlay: () => <div>
+        {isLoading && <div className="loading"></div>}
+      </div>,
+      }}
     />
   </Box>
     <Button
