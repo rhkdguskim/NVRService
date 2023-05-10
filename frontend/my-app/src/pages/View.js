@@ -2,12 +2,10 @@ import '../styles/View.css';
 import VideoPlayer from '../components/videoplayer';
 import '../styles/VideoGrid.css'
 import React, { useState, useEffect } from 'react';
-import {GridLayout, Responsive, WidthProvider} from 'react-grid-layout';
-import Button from '@mui/material/Button';
-import {Link} from 'react-router-dom';
+import {Responsive, WidthProvider} from 'react-grid-layout';
+import { Grid, Button } from '@mui/material';
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-import Navigation from '../components/Navigation'
 import Cookies from 'js-cookie';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -24,15 +22,17 @@ function View() {
       const y = Math.floor((i - startIndex) / cols);
 
       layout.push({
-        i: `${i}`,
+        w: 1,
+        h: 1,
         x: x,
         y: y,
-        w: 1,
-        h: 1
+        i: `${i}`,
       });
     }
+    console.log("layout setted")
     console.log(layout)
     Cookies.set("Layout", layout, { expires: 1 });
+    setLayout(layout);
     return layout;
   };
 
@@ -48,7 +48,7 @@ function View() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [layout, setLayout] = useState(generateLayout(1));
+  const [layout, setLayout] = useState([]);
 
   const calculateRowHeight = () => {
     switch (cols) {
@@ -70,10 +70,13 @@ function View() {
     setCurrentPage(1);
   };
 
-
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    generateLayout();
+  }, [cols, currentPage]);
 
   useEffect(() => {
     const newTotalPages = Math.ceil(data.length / (cols * cols));
@@ -146,13 +149,34 @@ function View() {
 
   return (
     <>
-    <Button onClick={() => updateLayout(1)}>1x1</Button>
-    <Button onClick={() => updateLayout(2)}>2x2</Button>
-    <Button onClick={() => updateLayout(3)}>3x3</Button>
-    <Button onClick={() => updateLayout(4)}>4x4</Button>
-    <Button onClick={handlePrevButtonClick}> Prev </Button>
-    <Button onClick={handleNextButtonClick}> Next </Button>
-    {currentPage}/{getTotalPages()}
+    <Grid container spacing={2} sx={{py: 1,}}>
+    <Grid item>
+     <Button variant="contained" onClick={() => updateLayout(1)}>1x1</Button>
+    </Grid>
+    <Grid item>
+      <Button variant="contained" onClick={() => updateLayout(2)}>2x2</Button>
+    </Grid>
+
+    <Grid item>
+    <Button variant="contained" onClick={() => updateLayout(3)}>3x3</Button>
+      </Grid>
+      <Grid item>
+      <Button variant="contained"onClick={() => updateLayout(4)}>4x4</Button>
+      </Grid>
+
+      <Grid item>
+      <Button variant="contained"onClick={handlePrevButtonClick}> Prev </Button>
+      </Grid>
+      <Grid item>
+      <Button variant="contained" onClick={handleNextButtonClick}> Next </Button>
+      </Grid>
+      <Grid item>
+      <Button variant="contained" disabled={true}> {currentPage}/{getTotalPages()} </Button>
+      
+      </Grid>
+    </Grid>
+    
+    
 <ResponsiveGridLayout
   className="layout"
   breakpoints={{ lg: 1000 }}
@@ -162,6 +186,7 @@ function View() {
   rowHeight={calculateRowHeight()}
   isDraggable={true}
   isResizable={false}
+  maxRows={cols}
 >
       {data.map((camera, index) => renderCamera(camera, index))}
       </ResponsiveGridLayout>

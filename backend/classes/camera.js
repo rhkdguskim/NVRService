@@ -86,7 +86,7 @@ class Camera extends onvifCam {
           }
           //console.log(capabilities);
         });
-      
+        this.profilelist = []; // 프로파일 초기화
          //console.log("[Camera Connected] "+"IP: " + this.ip + ' Port: ' + this.port);
          this.getProfiles(function(err, profiles) {
             //console.log(profiles[0].$.token);

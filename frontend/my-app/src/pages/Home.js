@@ -1,12 +1,12 @@
 import '../styles/Home.css';
 import React, { useState, useEffect } from 'react';
-
+import Useage from '../components/Useage'
 function Home() {
   return (
     <>
-    <div>
-      <h1>Welcome to the Home Page</h1>
-      <p>This is the Home page content</p>
+    <div style={{ width: '600px', height: '600px' }}>
+    <h1>Welcome to the Home Page</h1>
+    <Useage/>
     </div>
     </>
 

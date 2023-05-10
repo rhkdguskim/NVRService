@@ -2,7 +2,40 @@ import React, { useEffect, useRef } from 'react';
 
 function VideoPlayer({ videoUrl }) {
   const videoCanvasRef = useRef(null);
+  
   const playerRef = useRef(null);
+
+  const handleContextMenu = (event) => {
+    event.preventDefault();
+  };
+
+  function handleDoubleClick(event) {
+    // 더블 클릭 시에 호출될 함수
+    console.log('Canvas double clicked!');
+
+    // 새로운 팝업 창 띄우기
+    window.open('https://www.example.com', 'popup', 'width=400,height=300');
+  }
+
+  function handleMouseMove(event) {
+    //console.log(videoCanvasRef.current);
+    const context = videoCanvasRef.current.getContext('2d');
+    if (!context) {
+      //console.log(context);
+      //console.log('context is not ready');
+      return;
+    }
+    context.clearRect(0, 0, videoCanvasRef.current.width, videoCanvasRef.current.height);
+    const mouseX = event.clientX - videoCanvasRef.current.getBoundingClientRect().x;
+    const mouseY = event.clientY - videoCanvasRef.current.getBoundingClientRect().y;
+    context.beginPath();
+    context.moveTo(mouseX, 0);
+    context.lineTo(mouseX, videoCanvasRef.current.height);
+    context.moveTo(0, mouseY);
+    context.lineTo(videoCanvasRef.current.width, mouseY);
+    context.strokeStyle = 'red';
+    context.stroke();
+  }
 
   useEffect(() => {
     if (!videoCanvasRef.current) return;
@@ -14,16 +47,24 @@ function VideoPlayer({ videoUrl }) {
       isLive : true,
     });
 
+    if (videoCanvasRef.current) {
+      videoCanvasRef.current.addEventListener('mousemove', handleMouseMove);
+    }
+
     return () => {
       if (playerRef.current && playerRef.current.isPlaying) {
         playerRef.current.destroy();
         playerRef.current = null;
       }
+
+      if (videoCanvasRef.current) {
+        videoCanvasRef.current.removeEventListener('mousemove', handleMouseMove);
+      }
     };
   }, [videoUrl]);
 
-  return <div style={{ width: '100%', height: '100%' }}>
-    <canvas ref={videoCanvasRef} style={{ width: '100%', height: '100%' }} />
+  return <div style={{ width: '100%', height: '100%', border: '1px solid black'} }>
+    <canvas ref={videoCanvasRef} style={{ width: '100%', height: '100%' }} onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick} onMouseMove={handleMouseMove}/>
     </div>
 }
 

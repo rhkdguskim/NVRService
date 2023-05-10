@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { orange, green } from '@mui/material/colors'
 import Menu from './components/Menu';
 import Header from './components/Header';
 import Home from './pages/Home';
@@ -14,6 +15,18 @@ import Register from './pages/Register';
 import {BrowserRouter, Routes, Route, redirect} from "react-router-dom";
 
 function App() {
+
+  const theme = createTheme({
+    palette: {
+      primary: {
+        main: orange[300],
+      },
+      secondary: {
+        main: green[500],
+      },
+    },
+  });
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [Userdata, SetUserdata] = useState([]);
   useEffect(() => {
@@ -37,7 +50,8 @@ function App() {
   return (
     <>
     <BrowserRouter>
-      {isLoggedIn && <Header user={Userdata} handleLogin={handleLogin} /> }
+    <ThemeProvider theme={theme}>
+    {isLoggedIn && <Header user={Userdata} handleLogin={handleLogin} /> }
       {isLoggedIn && <Menu/> }
       {isLoggedIn && <Routes>
         <Route exact path="/" element={<Home />}/>
@@ -53,6 +67,7 @@ function App() {
       <Route exact path="/user/register" element={<Register/>}/>
       </Routes>
       }
+    </ThemeProvider>
       </BrowserRouter>
     </>
   );
