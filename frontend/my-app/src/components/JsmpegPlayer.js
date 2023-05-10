@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-function VideoPlayer({ videoUrl }) {
+function VideoPlayer({ videoUrl, camid }) {
   const videoCanvasRef = useRef(null);
   
   const playerRef = useRef(null);
@@ -11,10 +11,13 @@ function VideoPlayer({ videoUrl }) {
 
   function handleDoubleClick(event) {
     // 더블 클릭 시에 호출될 함수
+    console.log(event.target.id);
+    const hostname = window.location.hostname;
+    const port = window.location.port;
     console.log('Canvas double clicked!');
 
     // 새로운 팝업 창 띄우기
-    window.open('https://www.example.com', 'popup', 'width=400,height=300');
+    window.open(`http://${hostname}:${port}/camera/capture/${event.target.id}`, 'popup', 'width=1980,height=1080');
   }
 
   function handleMouseMove(event) {
@@ -64,7 +67,7 @@ function VideoPlayer({ videoUrl }) {
   }, [videoUrl]);
 
   return <div style={{ width: '100%', height: '100%', border: '1px solid black'} }>
-    <canvas ref={videoCanvasRef} style={{ width: '100%', height: '100%' }} onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick} onMouseMove={handleMouseMove}/>
+    <canvas id={camid} ref={videoCanvasRef} style={{ width: '100%', height: '100%' }} onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick} onMouseMove={handleMouseMove}/>
     </div>
 }
 

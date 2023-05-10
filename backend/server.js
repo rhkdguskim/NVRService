@@ -58,7 +58,7 @@ app.ws('/data', (ws) => {
           console.error(err);
           return;
         }
-        console.log(stats);
+        //console.log(stats);
         const total = stats.size;
         const free = stats.available;
         const used = total - free;

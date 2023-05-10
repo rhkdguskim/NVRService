@@ -1,4 +1,5 @@
 import '../styles/Footer.css';
+import Useage from '../components/Useage'
 
 function Footer() {
   return (
@@ -7,7 +8,7 @@ function Footer() {
     <div className="footer-row">
       <div className="footer-column">
         <h4 className="footer-title">About Us</h4>
-        <p className="footer-text">Footer Page</p>
+        
       </div>
     </div>
   </div>

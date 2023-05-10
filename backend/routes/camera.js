@@ -138,7 +138,6 @@ router.get('/', (req, res) => {
 });
 
 router.get('/capture/:id/', (req, res) => {
-    //res.set('Content-Type', 'image/jpeg');
     camid = req.params.id;
     const camera = MycameraList.get(camid);
     // create a new ffmpeg command
@@ -152,9 +151,11 @@ router.get('/capture/:id/', (req, res) => {
     // capture the output from ffmpeg and send in HTTP response
     command.on('error', (err) => {
       console.error(`ffmpeg error: ${err.message}`);
-      res.status(500).send('Error capturing image.');
+      //res.status(500).send('Error capturing image.');
+      command.kill();
     })
     .on('end', () => {
+       command.kill();
       console.log('Captured image sent in HTTP response.');
     })
     .pipe(res, { end: true });

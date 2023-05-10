@@ -9,9 +9,10 @@ function App() {
   const cpuChartRef = useRef();
   const memoryChartRef = useRef();
   const diskChartRef = useRef();
-
+  const hostname = window.location.hostname;
+  const port = window.location.port;
   useEffect(() => {
-    const socket = new WebSocket('ws://localhost:8000/data');
+    const socket = new WebSocket(`ws://${hostname}:${port}/data`);
     socket.onopen = () => {
       console.log('Connected to server');
     };
@@ -57,8 +58,9 @@ function App() {
             yAxes: [
               {
                 ticks: {
-                  beginAtZero: true,
-                  max: 100,
+                  beginAtZero: true, // y축 최소값을 0으로 설정합니다.
+                  stepSize: 10, // y축 눈금 간격을 10으로 설정합니다.
+                  max: 100, // y축 최대값을 100으로 설정합니다.
                 },
               },
             ],
@@ -85,8 +87,9 @@ function App() {
             yAxes: [
               {
                 ticks: {
-                  beginAtZero: true,
-                  max: 100,
+                  beginAtZero: true, // y축 최소값을 0으로 설정합니다.
+                  stepSize: 10, // y축 눈금 간격을 10으로 설정합니다.
+                  max: 100, // y축 최대값을 100으로 설정합니다.
                 },
               },
             ],
@@ -151,8 +154,8 @@ function App() {
 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-      <canvas ref={cpuChartRef} style={{ width: '50%', height: '200px' }}></canvas>
-      <canvas ref={memoryChartRef} style={{ width: '50%', height: '200px' }}></canvas>
+      <canvas ref={cpuChartRef} style={{ width: '50%', height: '100px' }}></canvas>
+      <canvas ref={memoryChartRef} style={{ width: '50%', height: '100px' }}></canvas>
       {/* <canvas ref={diskChartRef} style={{ width: '30%', height: '200px' }}></canvas> */}
     </div>
   );

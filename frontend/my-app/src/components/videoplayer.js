@@ -9,7 +9,7 @@ const VideoPlayer = ({camid, type }) => {
   const [buffering, setBuffering] = useState(false);
   const playerRef = useRef(null);
   const hostname = window.location.hostname;
-
+  const port = window.location.port;
   let jsmpegPlayer = null;
 
   useEffect(() => {
@@ -25,7 +25,7 @@ const VideoPlayer = ({camid, type }) => {
         break;
       case "mjpeg":
         SetStreamType('video/mp2t');
-        SetStreamSrc(`ws://${hostname}:8000/camera/ws/${camid}`)
+        SetStreamSrc(`ws://${hostname}:${port}/camera/ws/${camid}`)
         break;
     }
   }, []);
@@ -62,7 +62,8 @@ const VideoPlayer = ({camid, type }) => {
     <>
     {type === 'mjpeg' ? 
         <JsmpegPlayer
-          videoUrl={`ws://${hostname}:8000/camera/ws/${camid}`}
+          videoUrl={`ws://${hostname}:${port}/camera/ws/${camid}`}
+          camid={camid}
         />
          : 
         <ReactPlayer
