@@ -6,8 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "devStart": "nodemon server.js",
-    "start": "pm2 start server.js",
-    "stop": "pm2 stop all"
+    "start": "pm2 start server.js -i max",
+    "stop": "pm2 stop all",
+    "monit" : "pm2 monit"
   },
   "author": "",
   "license": "ISC",

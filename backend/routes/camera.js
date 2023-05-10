@@ -48,7 +48,7 @@ db.find({}, (err, cameras) => {
 router.ws('/ws/:id/', (ws, req) => {
     const camid = req.params.id;
     const uuid = uuidv4();
-    console.log("Camera WebSocket Streaming");
+    //console.log("Camera WebSocket Streaming");
     const camera = MycameraList.get(camid);
     // camera.StartMjpegStream(camera.liveprofile);
     camera.StreamList.set(uuid, new PassThrough());
@@ -60,7 +60,7 @@ router.ws('/ws/:id/', (ws, req) => {
 
     ws.on('close', () => {
       camera.StreamList.delete(uuid);
-      console.log('Client disconnected');
+      //console.log('Client disconnected');
     });
 
     ws.on('message', (data) => {
@@ -168,40 +168,18 @@ router.get('/:id/', (req, res) => {
     const uuid = uuidv4();
     const camera = MycameraList.get(camid);
     
-    if(camera.protocoltype === 'mp4') {
-        res.writeHead(200, { // video/mp4
-            'Content-Type': 'video/mp4', 
-            'Transfer-Encoding': 'chunked',
-            'Connection': 'keep-alive',
-          });
-
-        const stream = camera.StartMP4Stream(uuid);
-        stream.pipe(res);
-     
-         req.on('close', () => {
-             camera.StreamList.delete(uuid);
-         });
-    }
-    else {
-        res.writeHead(200, { // video/mp2t
-            'Content-Type': 'video/mp2t',
-            'Content-Disposition': 'inline',
-            'Transfer-Encoding': 'chunked',
-            'Connection': 'keep-alive'
-          });
-
-          camera.StreamList.set(uuid, new PassThrough());
-          const stream = camera.StreamList.get(uuid);
-
-          stream.on('data', (data) => {
-            res.write(data);
-         });
-
-         req.on('close', () => {
-            camera.StreamList.delete(uuid);
+    res.writeHead(200, { // video/mp4
+        'Content-Type': 'video/mp4', 
+        'Transfer-Encoding': 'chunked',
+        'Connection': 'keep-alive',
         });
-         
-    }
+
+    const stream = camera.StartMP4Stream(uuid);
+    stream.pipe(res);
+    
+    req.on('close', () => {
+        camera.StreamList.delete(uuid);
+    });
 
 });
 

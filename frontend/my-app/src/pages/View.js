@@ -148,8 +148,8 @@ function View() {
     <>
     <Button onClick={() => updateLayout(1)}>1x1</Button>
     <Button onClick={() => updateLayout(2)}>2x2</Button>
-    {/* <Button onClick={() => updateLayout(3)}>3x3</Button>
-    <Button onClick={() => updateLayout(4)}>4x4</Button> */}
+    <Button onClick={() => updateLayout(3)}>3x3</Button>
+    <Button onClick={() => updateLayout(4)}>4x4</Button>
     <Button onClick={handlePrevButtonClick}> Prev </Button>
     <Button onClick={handleNextButtonClick}> Next </Button>
     {currentPage}/{getTotalPages()}

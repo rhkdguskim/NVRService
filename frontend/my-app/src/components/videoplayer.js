@@ -24,7 +24,6 @@ const VideoPlayer = ({camid, type }) => {
         SetStreamSrc(`/${camid}/play.m3u8`)
         break;
       case "mjpeg":
-        
         SetStreamType('video/mp2t');
         SetStreamSrc(`ws://${hostname}:8000/camera/ws/${camid}`)
         break;
@@ -61,9 +60,12 @@ const VideoPlayer = ({camid, type }) => {
 
   return (
     <>
-    {type === 'mjpeg' ? <JsmpegPlayer
+    {type === 'mjpeg' ? 
+        <JsmpegPlayer
           videoUrl={`ws://${hostname}:8000/camera/ws/${camid}`}
-        /> : <ReactPlayer
+        />
+         : 
+        <ReactPlayer
         url={streamSrc}
         type={streamType}
         controls={false}

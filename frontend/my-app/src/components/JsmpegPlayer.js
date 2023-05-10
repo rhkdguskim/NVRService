@@ -7,7 +7,12 @@ function VideoPlayer({ videoUrl }) {
   useEffect(() => {
     if (!videoCanvasRef.current) return;
 
-    playerRef.current = new window.JSMpeg.Player(videoUrl, { canvas: videoCanvasRef.current });
+    playerRef.current = new window.JSMpeg.Player(videoUrl, { 
+      canvas: videoCanvasRef.current,
+      autoplay: true,
+      audio: false,
+      isLive : true,
+    });
 
     return () => {
       if (playerRef.current && playerRef.current.isPlaying) {

@@ -112,11 +112,11 @@ class Camera extends onvifCam {
                     switch(this.protocoltype)
                     {
                         case "hls":
-                          console.log("HLS Started");
+                          //console.log("HLS Started");
                           this.StartHLSStream(profilename);
                           break;
                         case "mjpeg" :
-                          console.log("MJPEG Started")
+                          //console.log("MJPEG Started")
                           this.StartMjpegStream(profilename);
                     }
                   }
@@ -306,19 +306,25 @@ class Camera extends onvifCam {
       ] :
       [
         '-i',
-        `${camera.rtspurl.get(camera.liveprofile)}`,
+        `${this.rtspurl.get(this.liveprofile)}`,
         '-rtsp_transport','udp',
         '-rtsp_flags', 'listen',
         '-f',
         'mpegts',
         '-codec:v',
         'mpeg1video',
-        '-codec:a',
-        'mp2',
+        '-r',
+        '30',
+        '-b:v', '1000k',
+         '-preset', 'ultrafast',
+         `-tune`, `zerolatency`,
         'pipe:1',
       ]
       
-      const ChildProcess = spawn(ffmpeg_static, args);
+      const ChildProcess = spawn(ffmpeg_static, args, {
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
 
       this.StreamProcess.set(profile, ChildProcess);
 
