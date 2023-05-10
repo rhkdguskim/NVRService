@@ -58,6 +58,17 @@ function Menu() {
         Camera
       </Button>
       <Button
+        component={Link} to="/system"
+        color="inherit"
+        className="navbar__button"
+        id="system"
+        aria-controls={open ? 'home-menu' : undefined}
+        aria-haspopup="true"
+        aria-expanded={open ? 'true' : undefined}
+      >
+        System
+      </Button>
+      <Button
       component={Link} to="/onvif"
         color="inherit"
         className="navbar__button"

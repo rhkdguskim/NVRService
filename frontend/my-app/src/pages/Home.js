@@ -5,7 +5,7 @@ function Home() {
   return (
     <>
     <div style={{ width: '600px', height: '600px' }}>
-    <h1>Welcome to the Home Page</h1>
+    <h1>System Diagnostics</h1>
     <Useage/>
     </div>
     </>

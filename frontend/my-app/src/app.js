@@ -11,6 +11,7 @@ import Cameralist from './pages/CameraList';
 import Onvif from './pages/Onvif';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import System from './pages/System';
 
 import {BrowserRouter, Routes, Route, redirect} from "react-router-dom";
 
@@ -57,6 +58,7 @@ function App() {
         <Route exact path="/" element={<Home />}/>
         <Route exact path="/View" element={<View />}/>
         <Route exact path="/camera" element={<Cameralist />}/>
+        <Route exact path="/system/" element={<System/>}/>
         <Route exact path="/camera/add" element={<AddCamera user={Userdata}/>}/>
         <Route exact path="/onvif" element={<Onvif user={Userdata}/>}/>
     </Routes>

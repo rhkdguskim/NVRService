@@ -24,7 +24,7 @@ const MycameraList = new Map();
 
 function ReloadData() {
     db.loadDatabase();
-  }
+}
 
 
 db.find({}, (err, cameras) => {
@@ -64,7 +64,7 @@ router.ws('/ws/:id/', (ws, req) => {
     });
 
     ws.on('message', (data) => {
-        console.log("From Client : "+data);
+        //console.log("From Client : "+data);
     })
   });
 
@@ -95,6 +95,7 @@ router.post('/', (req, res) => {
             //Camera.StartCameraStream();
             MycameraList.set(id, Camera);
             res.status(201).send(result);
+            ReloadData();
         }
     })
 });
@@ -156,7 +157,7 @@ router.get('/capture/:id/', (req, res) => {
     })
     .on('end', () => {
        command.kill();
-      console.log('Captured image sent in HTTP response.');
+      //console.log('Captured image sent in HTTP response.');
     })
     .pipe(res, { end: true });
     
@@ -194,6 +195,7 @@ router.delete('/', (req,res) => {
             camera.stop();
             MycameraList.delete(req.body.id);
             res.status(201).send(numRemoved.toString());
+            ReloadData();
         }
     })
 });
@@ -211,7 +213,7 @@ router.put('/', (req,res) => {
         protocoltype:req.body.protocoltype,
     };
 
-    console.log('mod');
+    //console.log('mod');
     const Camera = MycameraList.get(req.body.id);
     Camera.ip = req.body.ip;
     Camera.port = req.body.port;
@@ -234,13 +236,13 @@ router.put('/', (req,res) => {
         protocoltype : req.body.protocoltype,
     } } , { upsert: true } , (err, numRemoved) => {
         if(err) {
-            console.log(err.message);
             res.status(500).send(err.message);
         }
         else{
             res.status(201).send(numRemoved.toString());
+            ReloadData();
         }
-        ReloadData();
+        
     })
     
 });

@@ -34,4 +34,29 @@ module.exports = (app) => {
           changeOrigin: true,
         }),
       );
+
+      app.use(
+        createProxyMiddleware('/system', {
+          target: 'http://localhost:8000/',
+          changeOrigin: true,
+        }),
+      );
+
+      app.use(
+        '/data',
+        createProxyMiddleware({
+          target: 'ws://localhost:8000/',
+          ws: true,
+          changeOrigin: true,
+        })
+      );
+
+      app.use(
+        '/camera/ws',
+        createProxyMiddleware({
+          target: 'ws://localhost:8000/',
+          ws: true,
+          changeOrigin: true,
+        })
+      );
   };

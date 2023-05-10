@@ -5,15 +5,12 @@ const NedbStore = require('connect-nedb-session')(session);
 var HLSServer = require("hls-server");
 
 const camera = require("./routes/camera");
+const system = require("./routes/system");
 const videos = require("./routes/videos");
 const onvif = require("./routes/onvif");
 const user = require("./routes/user");
 const path = require("path");
 var cors = require('cors');
-const os = require('os-utils');
-const fs = require('fs');
-
-process.env.UV_THREADPOOL_SIZE = 16;
 
 require('dotenv').config();
 
@@ -41,40 +38,8 @@ var hls = new HLSServer(app, {
 
 expressWs(app);
 expressWs(camera);
+expressWs(system);
 
-app.ws('/data', (ws) => {
-  console.log('Client connected');
-
-  const sendUsage = () => {
-    os.cpuUsage((cpuUsage) => {
-      const totalMemory = os.totalmem();
-      const freeMemory = os.freemem();
-      const usedMemory = totalMemory - freeMemory;
-      const memoryUsage = Math.round((usedMemory / totalMemory) * 100);
-
-      const drive = 'D:/';
-      fs.stat(drive, (err, stats) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        //console.log(stats);
-        const total = stats.size;
-        const free = stats.available;
-        const used = total - free;
-        const diskUsage = Math.round((used / total) * 100);
-        ws.send(JSON.stringify({ cpuUsage, memoryUsage, diskUsage }));
-      });
-    });
-  };
-
-  const intervalId = setInterval(sendUsage, 1000);
-
-  ws.on('close', () => {
-    console.log('Client disconnected');
-    clearInterval(intervalId);
-  });
-});
 
 app.use(session({
   secret: process.env.SECRET,
@@ -111,8 +76,9 @@ app.use((req, res, next) => {
 
 app.use("/user", user);
 app.use("/camera", requireLogin, camera);
-app.use("/videos", requireLogin, videos)
-app.use("/onvif", requireLogin, onvif)
+app.use("/videos", requireLogin, videos);
+app.use("/onvif", requireLogin, onvif);
+app.use("/system", requireLogin, system);
 
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../frontend/my-app/build/index.html'));
