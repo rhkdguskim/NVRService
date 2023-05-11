@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 import JsmpegPlayer from '../components/JsmpegPlayer';
 
-const VideoPlayer = ({camid, type }) => {
+const VideoPlayer = ({setprogress, camid, type }) => {
   const [playing, setPlaying] = useState(true);
   const [streamType, SetStreamType] = useState('mp4');
   const [streamSrc, SetStreamSrc] = useState('');
@@ -62,6 +62,7 @@ const VideoPlayer = ({camid, type }) => {
     <>
     {type === 'mjpeg' ? 
         <JsmpegPlayer
+          setprogress = {setprogress}
           videoUrl={`ws://${hostname}:${port}/camera/ws/${camid}`}
           camid={camid}
         />

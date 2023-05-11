@@ -9,7 +9,8 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import Cookies from 'js-cookie';
 import LinearProgress from '@mui/material/LinearProgress';
-import { DatePicker } from '@material-ui/pickers';
+import { Calendar } from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -52,30 +53,23 @@ function View() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [progress, setProgress] = useState(0);
-  const [buffer, setBuffer] = useState(10);
 
   const [layout, setLayout] = useState([]);
 
   const progressRef = useRef(() => {});
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
   };
 
-  useEffect(() => {
-    progressRef.current = () => {
-      if (progress > 100) {
-        setProgress(0);
-        setBuffer(10);
-      } else {
-        const diff = Math.random() * 10;
-        const diff2 = Math.random() * 10;
-        setProgress(progress + diff);
-        setBuffer(progress + diff + diff2);
-      }
-    };
-  });
+  const handleProgressClick = (event) => {
+    const progressBarWidth = event.currentTarget.clientWidth;
+    const clickPosition = event.clientX - event.currentTarget.getBoundingClientRect().left;
+    const percentage = (clickPosition / progressBarWidth) * 100;
+    setProgress(percentage);
+  };
+
 
   const calculateRowHeight = () => {
     switch (cols) {
@@ -175,7 +169,7 @@ function View() {
           LIVE : {camera.camname} : {camera.ip}
         </div>
         <Box sx={{ top: 0, left: 0, width: '100%', height: '100%' }}>
-        <VideoPlayer camid ={camera.id} type={camera.protocoltype} style={{ width: '100%', height: '100%' }} />
+        <VideoPlayer setprogress = {setProgress} camid ={camera.id} type={camera.protocoltype} style={{ width: '100%', height: '100%' }} />
         </Box>
         </div>
       );
@@ -209,8 +203,9 @@ function View() {
       </Grid>
       <Grid item>
       <Button variant="contained" disabled={true}> {currentPage}/{getTotalPages()} </Button>
-      
       </Grid>
+      
+
     </Grid>
     
     
@@ -228,9 +223,35 @@ function View() {
       {data.map((camera, index) => renderCamera(camera, index))}
       </ResponsiveGridLayout>
 
-      <Box sx={{ width: '100%' }}>
-      <LinearProgress variant="determinate" value={progress} />
+    <Box sx={{ width: '100%' }}>
+    <Grid container spacing={1} sx={{py: 1,}}>
+    <Grid item>
+    <div className="calendar-container">
+      <Calendar />
+    </div>
+    </Grid>
+    <Grid item>
+     <Button variant="contained" onClick={() => updateLayout(1)}>VOD ALL</Button>
+    </Grid>
+    <Grid item>
+      <Button variant="contained" onClick={() => updateLayout(2)}>LIVE ALL</Button>
+    </Grid>
+
+    <Grid item>
+    <Button variant="contained" onClick={() => updateLayout(3)}>VOD</Button>
+      </Grid>
+      <Grid item>
+      <Button variant="contained"onClick={() => updateLayout(4)}>LIVE</Button>
+      </Grid>
+      </Grid>
+      <LinearProgress variant="determinate" value={progress} onClick={handleProgressClick} 
+      sx={{
+          height: 10, // Adjust the height to make the progress bar thicker
+          borderRadius: 5, // Optional: Apply rounded corners to the progress bar
+        }}/>
+        Time : {progress}
     </Box>
+    
     </>
     
 

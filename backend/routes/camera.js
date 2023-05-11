@@ -190,8 +190,15 @@ router.get('/profile/:id',CheckCam, (req, res) => {
 
 router.get('/vics/:ip', async (req, res) => {
     const ip = req.params.ip;
-    const data = await getVicsCamera(ip, 9080);
-    res.json(data);
+    try{
+        const data = await getVicsCamera(ip, 9080);
+        res.status(201).json(data);
+    }
+    catch (err) {
+        res.status(500).json(err);
+    }
+    
+    
 });
 
 router.get('/', (req, res) => {

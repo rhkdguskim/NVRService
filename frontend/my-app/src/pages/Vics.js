@@ -67,7 +67,7 @@ const Vics = () => {
   ];
   
   async function fetchData() {
-    const response = await fetch('camera/vics/110.110.10.80');
+    const response = await fetch('camera/vics/127.0.0.1');
     const json = await response.json();
     console.log(json.cVidCamera);
     json.cVidCamera.map(item => {

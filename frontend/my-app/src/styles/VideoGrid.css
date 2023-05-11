@@ -21,3 +21,32 @@
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
     text-align: center;
   }
+
+ /* Container styles */
+.calendar-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Calendar styles */
+.react-calendar {
+  max-width: 400px;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  font-family: Arial, sans-serif;
+}
+
+.react-calendar__navigation {
+  background-color: #e0e0e0;
+  color: #333;
+  font-weight: bold;
+}
+
+.react-calendar__month-view__days__day--weekend {
+  color: red;
+}
+
+.react-calendar__tile--active {
+  background-color: #ffcc80;
+}

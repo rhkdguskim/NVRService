@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-function VideoPlayer({ videoUrl, camid }) {
+function VideoPlayer({ setprogress, videoUrl, camid }) {
   const videoCanvasRef = useRef(null);
   
   const playerRef = useRef(null);
@@ -18,6 +18,17 @@ function VideoPlayer({ videoUrl, camid }) {
 
     // 새로운 팝업 창 띄우기
     window.open(`http://${hostname}:${port}/camera/capture/${event.target.id}`, 'popup', 'width=1980,height=1080');
+  }
+
+  
+  function handleonClick(event) {
+    const currentTime = new Date();
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999); // Set end of day to 23:59:59.999
+      const remainingTime = endOfDay.getTime() - currentTime.getTime();
+      const totalDuration = 24 * 60 * 60 * 1000; // Total duration in milliseconds (24 hours)
+      const progress = ((totalDuration - remainingTime) / totalDuration) * 100;
+    setprogress(progress);
   }
 
   function handleMouseMove(event) {
@@ -67,7 +78,7 @@ function VideoPlayer({ videoUrl, camid }) {
   }, [videoUrl]);
 
   return <div style={{ width: '100%', height: '100%', border: '1px solid black'} }>
-    <canvas id={camid} ref={videoCanvasRef} style={{ width: '100%', height: '100%' }} onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick} onMouseMove={handleMouseMove}/>
+    <canvas id={camid} ref={videoCanvasRef} style={{ width: '100%', height: '100%' }} onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick} onMouseMove={handleMouseMove} onClick={handleonClick}/>
     </div>
 }
 
