@@ -22,6 +22,7 @@ router.post("/login", (req, res) => {
                    req.session.username = req.body.username;
                    req.session.onvifid = user[0].onvifid;
                    req.session.onvifpwd = user[0].onvifpwd;
+                   req.session.auth = user[0].auth;
                    res.send({Logined:true});
                }
                else {
@@ -49,7 +50,7 @@ router.post("/login", (req, res) => {
 
 
  router.get("/", (req, res) => {
-    res.send({user : {username:req.session.username, onvifid:req.session.onvifid, onvifpwd:req.session.onvifpwd} , islogined: req.session.islogined});
+    res.send({user : {username:req.session.username, onvifid:req.session.onvifid, onvifpwd:req.session.onvifpwd, auth:req.session.auth} , islogined: req.session.islogined});
  })
 
  router.post("/", (req, res) => {
@@ -65,7 +66,8 @@ router.post("/login", (req, res) => {
             password : hash,
             onvifid  : req.body.onvifid,
             onvifpwd : req.body.onvifpwd,
-            key : req.body.username
+            key : req.body.username,
+            auth : false,
             }
         
             db.insert(user, (err, result) => {
