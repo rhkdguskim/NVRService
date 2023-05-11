@@ -1,0 +1,410 @@
+
+syntax = "proto3";
+
+import "vidconf.proto";
+
+message LinkLoginReq {
+	string strUserName = 1;
+	string strPasswd = 2;
+}
+
+message LinkLoginResp {
+	string strNonce = 1;
+	bool bRetNonce = 2;
+	bool bRet = 3;
+}
+
+message LinkKeepaliveReq {
+	int32 nKeepalive = 1;
+}
+
+message LinkKeepaliveResp {
+	int32 nKeepalive = 1;
+}
+message LinkRegNotifyReq {
+	string strFake = 1;
+}
+message LinkRegNotifyResp {
+	bool bSuccess = 1;
+}
+
+//MIRERO // -1 인경우, 단순 조회
+message LinkSetLogLevelReq {
+	int32 nLevel = 1; 
+}
+
+// 실패는 -1
+message LinkSetLogLevelResp {
+	int32 nLevel = 1; 
+}
+
+//Camera
+message LinkListCamReq {
+	bool bAll = 1;
+}
+
+message LinkListCamResp {
+	VidCameraList cList = 1;
+}
+
+message LinkCamReq {
+	string strId = 1;
+}
+
+message LinkCamResp {
+	VidCamera cCam = 1;
+}
+message LinkAddCamReq {
+	VidCamera cCam = 1;
+}
+message LinkAddCamResp {
+	bool bSuccess = 1;
+}
+message LinkDelCamReq {
+	string strId = 1;
+}
+message LinkDelCamResp {
+	bool bSuccess = 1;
+}
+message LinkSetCamSchedReq {
+	VidCamera cCam = 1;
+}
+message LinkSetCamSchedResp {
+	bool bSuccess = 1;
+}
+message LinkGetStreamListReq {
+	string strId = 1;
+}
+message LinkGetStreamListResp {
+	VidStreamList cList = 1;
+}
+
+
+//Disk
+message LinkVidDiskListReq {
+	bool bAll = 1;
+}
+message LinkVidDiskListResp {
+	VidDiskList cDisk = 1;
+}
+
+message LinkSysVidDiskListReq {
+	bool bAll = 1;
+}
+message LinkSysVidDiskListResp {
+	VidDiskList cDisk = 1;
+}
+
+message LinkAddDiskReq {
+	VidDisk cDisk = 1;
+}
+message LinkAddDiskResp {
+	bool bSuccess = 1;
+}
+message LinkDelDiskReq {
+	string strId = 1;
+}
+message LinkDelDiskResp {
+	bool bSuccess = 1;
+}
+message LinkUpdateDiskLimitReq {
+	string strId = 1;
+	int64 nLimit = 2;
+}
+message LinkUpdateDiskLimitResp {
+	bool bSuccess = 1;
+}
+
+//License & Version
+message LinkGetLicReq {
+	string strFake = 1;
+}
+message LinkGetLicResp {
+	string strLic = 1;
+	string strHostId = 2;
+	int32 nCh = 3;
+	string strType = 4;
+	string strStartTime = 5;
+	string strExpireTime = 6;
+}
+
+message LinkGetVerReq {
+	string strFake = 1;
+}
+message LinkGetVerResp {
+	string strVer = 1;
+	string strInfo = 2;
+}
+message LinkConfLicReq {
+	string strLic = 1;
+}
+message LinkConfLicResp {
+	bool bSuccess = 1;
+}
+
+//User Add Del
+message LinkAddUserReq {
+	string strUser = 1;
+	string strPasswd = 2;
+	string stroldPasswd = 3;
+	//Role of the user
+}
+message LinkAddUserResp {
+	bool bSuccess = 1;
+}
+
+//Search
+message LinkHasRecordItem {
+	int64 nId = 1;
+	int32 nStart = 2;
+	int32 nEnd = 3;
+	int32 nType = 4;
+	bool bHas = 5;
+}
+
+message LinkHasRecordList {
+	repeated LinkHasRecordItem cHasRec = 1;
+}
+
+message LinkHasRecordReq {
+	string strId = 1;
+	LinkHasRecordList cList = 2;
+}
+message LinkHasRecordResp {
+	LinkHasRecordList cList = 1;
+}
+
+message LinkRecordItem {
+	int64 nId = 1;
+	int32 nStart = 2;
+	int32 nEnd = 3;
+	int32 nType = 4;
+}
+message LinkRecordList {
+	repeated LinkRecordItem cList = 1;
+}
+
+message LinkSearchRecordReq {
+	string strId = 1;
+	int32 nStart = 2;
+	int32 nEnd = 3;
+	int32 nType = 4;
+}
+message LinkSearchRecordResp {
+	string strId = 1;
+	LinkRecordList cList = 2;
+}
+
+//Stream, Stream is one way command from client to server
+message LinkStartLiveCmd {
+	string strId = 1;
+	int32 nStream = 2;
+}
+message LinkStopLiveCmd {
+	string strId = 1;
+	int32 nStream = 2;
+}
+message LinkPlayBackCmd {
+	string strId = 1;
+	int32 nPlaytime = 2;
+}
+message LinkPlayPauseCmd {
+	string strId = 1;
+}
+message LinkPlayResumeCmd {
+	string strId = 1;
+}
+message LinkPlaySeekCmd {
+	string strId = 1;
+	int32 nPlaytime = 2;
+}
+message LinkPlayStopCmd {
+	string strId = 1;
+}
+message LinkPlaySpeedCmd {
+	string strId = 1;
+	float fSpeed=2;
+}
+message LinkPlayNextFrameCmd {
+	string strId = 1;
+}
+message LinkPlayPreFrameCmd {
+	string strId = 1;
+}
+
+// NewMiStream
+message LinkMiVideoData {
+	string struuid = 1;
+	string strdatabuf = 2;
+	uint32 dataLen = 3;
+	uint32 bufLen = 4;
+	uint32 streamType = 5;
+	uint32 frameType = 6;
+	uint32 secs = 7;
+	uint32 msecs = 8;
+}
+
+message LinkMiStartLiveCmd {
+	string strId = 1;
+	int32 nStream = 2;
+	string struuid = 3;
+}
+message LinkMiStopLiveCmd {
+	string struuid = 1;
+}
+message LinkMiPlayBackCmd {
+	string strId = 1;
+	int32 nPlaytime = 2;
+	string struuid = 3;
+}
+message LinkMiPlayPauseCmd {
+	string struuid = 1;
+}
+message LinkMiPlayResumeCmd {
+	string struuid = 1;
+}
+message LinkMiPlaySeekCmd {
+	string struuid = 1;
+	int32 nPlaytime = 2;
+}
+message LinkMiPlayStopCmd {
+	string struuid = 1;
+}
+message LinkMiPlaySpeedCmd {
+	string struuid = 1;
+	float fSpeed=2;
+}
+message LinkMiPlayNextFrameCmd {
+	string struuid = 1;
+}
+message LinkMiPlayPreFrameCmd {
+	string struuid = 1;
+}
+
+message LinkMiChangeStreamCmd {
+	string strId = 1;
+	int32 nStream = 2;
+	string struuid = 3;
+}
+
+//PTZ Command
+message LinkPtzCmd {
+	string strId = 1;
+	int32 nAction = 2;
+	double nParam = 3;
+}
+
+//Camera Search & Event Search
+message LinkCamSearchStartReq {
+	string strFake = 1;
+}
+message LinkCamSearchStartResp {
+	bool bSuccess = 1;
+}
+message LinkCamSearchStopReq {
+	string strFake = 1;
+}
+
+message LinkCamSearchStopResp {
+	bool bSuccess = 1;
+}
+
+message LinkRegEventReq {
+	string strId = 1;
+}
+message LinkRegEventResp {
+	bool bSuccess = 1;
+}
+
+message LinkUnRegEventReq {
+	string strId = 1;
+}
+message LinkUnRegEventResp {
+	bool bSuccess = 1;
+}
+
+message LinkEventSearchReq {
+	string strId = 1;
+	int32 nStart = 2;
+	int32 nEnd = 3;
+}
+message LinkEventSearchResp {
+	bool bSuccess = 1;
+}
+
+message LinkHandleEventReq {
+	string strId = 1;
+}
+message LinkHandleEventResp {
+	bool bSuccess = 1;
+}
+
+//Notify
+message LinkCamAddNotify {
+	VidCamera cCam = 1;
+}
+message LinkCamIdNotify {
+	string strId = 1;
+}
+
+message LinkCamSearchedNotify {
+	string strIp = 1;
+	string strPort = 2;
+	string strModel = 3;
+	string strONVIFAddress = 4;
+}
+
+message LinkEventNotify {
+	VidEvent cEvent = 1;
+}
+
+message LinkRegSocketNotifyReq {
+	string strFake = 1;
+}
+message LinkRegSocketNotifyResp {
+	bool bSuccess = 1;
+}
+
+message LinkVidSocketCntReq {
+	int32 nClientCnt = 1;
+	int32 nStreamCnt = 2;
+}
+
+message LinkVidSocketCntResp {
+	bool bSuccess = 1;
+}
+
+message LinkVidSocketListReq {
+	bool bSuccess = 1;
+}
+
+message LinkVidSocketListResp {
+	VidSocketList cSocketList = 1;
+	bool bUserFull = 2;
+	bool bAdminFull = 3;
+}
+
+message LinkSocketAddNotify {
+	VidSocket cSocket = 1;
+}
+message LinkSocketDelNotify {
+	VidSocket cSocket = 1;
+}
+
+message LinkSocketEmptyNotify {
+	bool bSuccess = 1;
+	SocketConnectType nConnectType = 2;
+}
+
+message LinkSocketFullNotify {
+	bool bSuccess = 1;
+	SocketConnectType nConnectType = 2;
+}
+
+message LinkSocketSetSocketReq {
+	SocketConnectType nConnectType = 1;
+}
+
+message LinkSocketSetSocketResp {
+	bool bSuccess = 1;
+}

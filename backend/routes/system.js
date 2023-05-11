@@ -41,7 +41,7 @@ function ReloadData() {
 }
 
 router.ws('/data', (ws, req) => {
-
+    console.log("hi");
     const sendUsage = () => {
         os.cpuUsage((cpuUsage) => {
         const totalMemory = os.totalmem();
@@ -66,10 +66,14 @@ router.ws('/data', (ws, req) => {
             ws.send(JSON.stringify({ cpu, memory, disk }));
         });
     };
-    
+
     sendUsage();
 
     const intervalId = setInterval(sendUsage, 1000);
+
+    ws.on("message ", (data) => {
+        console.log(data);
+    })
 
     ws.on('close', () => {
         clearInterval(intervalId);

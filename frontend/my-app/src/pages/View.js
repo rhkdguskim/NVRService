@@ -1,12 +1,16 @@
 import '../styles/View.css';
 import VideoPlayer from '../components/videoplayer';
 import '../styles/VideoGrid.css'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {Responsive, WidthProvider} from 'react-grid-layout';
 import { Grid, Button } from '@mui/material';
+import Box from '@mui/material/Box';
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import Cookies from 'js-cookie';
+import LinearProgress from '@mui/material/LinearProgress';
+import { DatePicker } from '@material-ui/pickers';
+
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -47,8 +51,31 @@ function View() {
   const [cols, setCols] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [progress, setProgress] = useState(0);
+  const [buffer, setBuffer] = useState(10);
 
   const [layout, setLayout] = useState([]);
+
+  const progressRef = useRef(() => {});
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const handleDateChange = (date) => {
+    setSelectedDate(date);
+  };
+
+  useEffect(() => {
+    progressRef.current = () => {
+      if (progress > 100) {
+        setProgress(0);
+        setBuffer(10);
+      } else {
+        const diff = Math.random() * 10;
+        const diff2 = Math.random() * 10;
+        setProgress(progress + diff);
+        setBuffer(progress + diff + diff2);
+      }
+    };
+  });
 
   const calculateRowHeight = () => {
     switch (cols) {
@@ -72,6 +99,13 @@ function View() {
 
   useEffect(() => {
     fetchData();
+    const timer = setInterval(() => {
+      progressRef.current();
+    }, 500);
+
+    return () => {
+      clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -121,6 +155,7 @@ function View() {
     {
       //console.log(index);
       return (
+        
         <div key={index} onResizeStop={(e, d, ref, delta, position) => handleSizeChange(camera.idx, ref.clientWidth, ref.clientHeight)} style={{top: 0, left: 0, width: '100%', height: '100%' }} >
           <div
           style={{
@@ -139,7 +174,9 @@ function View() {
         >
           LIVE : {camera.camname} : {camera.ip}
         </div>
+        <Box sx={{ top: 0, left: 0, width: '100%', height: '100%' }}>
         <VideoPlayer camid ={camera.id} type={camera.protocoltype} style={{ width: '100%', height: '100%' }} />
+        </Box>
         </div>
       );
     };
@@ -190,6 +227,10 @@ function View() {
 >
       {data.map((camera, index) => renderCamera(camera, index))}
       </ResponsiveGridLayout>
+
+      <Box sx={{ width: '100%' }}>
+      <LinearProgress variant="determinate" value={progress} />
+    </Box>
     </>
     
 
