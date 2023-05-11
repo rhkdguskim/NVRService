@@ -5,6 +5,7 @@ const NedbStore = require('connect-nedb-session')(session);
 var HLSServer = require("hls-server");
 
 const camera = require("./routes/camera");
+const playback = require("./routes/playback");
 const system = require("./routes/system");
 const videos = require("./routes/videos");
 const onvif = require("./routes/onvif");
@@ -38,6 +39,7 @@ var hls = new HLSServer(app, {
 
 expressWs(app);
 expressWs(camera);
+expressWs(playback);
 expressWs(system);
 
 
@@ -66,7 +68,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']  // 허용하는 HTTP 헤더
 }));
 app.use(express.static(path.join(__dirname, 'hls/')));
-//app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../frontend/my-app/build')));
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
@@ -77,9 +78,11 @@ app.use((req, res, next) => {
 
 app.use("/user", user);
 app.use("/camera", requireLogin, camera);
+app.use("/playback", requireLogin, playback);
 app.use("/videos", requireLogin, videos);
 app.use("/onvif", requireLogin, onvif);
 app.use("/system", requireLogin, system);
+
 
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '../frontend/my-app/build/index.html'));
