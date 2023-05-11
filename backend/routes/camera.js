@@ -16,6 +16,8 @@ const { Binary } = require('bson');
 const {isValidIPandPORT} = require('../classes/common')
 require('dotenv').config();
 const debug = process.env.DEBUG === 'true';
+const axios = require('axios');
+const crypto = require('crypto');
 
 ffmpeg.setFfmpegPath(ffmpeg_static);
 
@@ -25,6 +27,39 @@ const MycameraList = new Map();
 function ReloadData() {
     db.loadDatabase();
 }
+
+async function getVicsCamera(ip, port) {
+    const username = 'admin';
+    const password = 'admin';
+  
+    try {
+      const response = await axios.get(`http://${ip}:${port}/vapi/GetCamList`);
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        const wwwAuthenticateHeader = error.response.headers['www-authenticate'];
+        const realmMatch = wwwAuthenticateHeader.match(/realm="([^"]*)"/);
+        const nonceMatch = wwwAuthenticateHeader.match(/nonce="([^"]*)"/);
+  
+        if (realmMatch && nonceMatch) {
+          const ha1 = crypto.createHash('md5').update(`${username}:${realmMatch[1]}:${password}`).digest('hex');
+          const ha2 = crypto.createHash('md5').update(`GET:/vapi/GetCamList`).digest('hex');
+          const nc = '00000001';
+          const cnonce = crypto.randomBytes(16).toString('hex');
+          const response = crypto.createHash('md5').update(`${ha1}:${nonceMatch[1]}:${nc}:${cnonce}:auth:${ha2}`).digest('hex');
+  
+          const authResponse = await axios.get(`http://${ip}:${port}/vapi/GetCamList`, {
+            headers: {
+              Authorization: `Digest username="${username}", realm="${realmMatch[1]}", nonce="${nonceMatch[1]}", uri="/vapi/GetCamList", response="${response}", qop=auth, nc=${nc}, cnonce="${cnonce}"`,
+            },
+          });
+          return authResponse.data;
+        }
+      }
+      console.error(error);
+      throw new Error('Failed to get camera list');
+    }
+  }
 
 
 db.find({}, (err, cameras) => {
@@ -151,6 +186,12 @@ router.get('/profile/:id',CheckCam, (req, res) => {
         return;
 
     res.json(Camera.profilelist);
+});
+
+router.get('/vics/:ip', async (req, res) => {
+    const ip = req.params.ip;
+    const data = await getVicsCamera(ip, 9080);
+    res.json(data);
 });
 
 router.get('/', (req, res) => {

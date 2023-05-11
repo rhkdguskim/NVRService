@@ -66,6 +66,8 @@ router.ws('/data', (ws, req) => {
             ws.send(JSON.stringify({ cpu, memory, disk }));
         });
     };
+    
+    sendUsage();
 
     const intervalId = setInterval(sendUsage, 1000);
 

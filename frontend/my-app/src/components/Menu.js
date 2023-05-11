@@ -79,6 +79,17 @@ function Menu() {
       >
         Onvif Discovery
       </Button>
+      <Button
+      component={Link} to="/vics"
+        color="inherit"
+        className="navbar__button"
+        id="vics"
+        aria-controls={open ? 'vics-menu' : undefined}
+        aria-haspopup="true"
+        aria-expanded={open ? 'true' : undefined}
+      >
+        VICS Discovery
+      </Button>
       <RMenu
         id="camera-menu"
         anchorEl={anchorEl}

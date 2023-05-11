@@ -9,6 +9,7 @@ import Footer from './components/Footer';
 import AddCamera from './pages/AddCamera';
 import Cameralist from './pages/CameraList';
 import Onvif from './pages/Onvif';
+import Vics from './pages/Vics';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import System from './pages/System';
@@ -60,6 +61,7 @@ function App() {
         <Route exact path="/camera" element={<Cameralist />}/>
         <Route exact path="/system/" element={<System/>}/>
         <Route exact path="/camera/add" element={<AddCamera user={Userdata}/>}/>
+        <Route exact path="/vics" element={<Vics/>}/>
         <Route exact path="/onvif" element={<Onvif user={Userdata}/>}/>
     </Routes>
      }
