@@ -2,8 +2,6 @@ var express = require("express");
 const expressWs = require("express-ws");
 const diskinfo = require('node-disk-info');
 const os = require('os-utils');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
 
 const Datastore = require('nedb');
 const db = new Datastore({ filename: 'db/DiskDB', autoload: true });
@@ -21,18 +19,20 @@ db.find({}, (err, diskList) => {
     }
     else
     {
-        for(idx in diskList)
-        {
-            diskinfo.getDiskInfo()
+        diskinfo.getDiskInfo()
             .then(disks => {
-              const disk = disks.filter( disk => diskList[idx].mounted === disk._mounted);
-              DiskList.set(diskList[idx].id, disk);
+                for(idx in diskList)
+                {
+                    const disk = disks.filter( disk => diskList[idx].id === disk._mounted);
+                    if(disk.length !== 0)
+                    {
+                        DiskList.set(diskList[idx].id, disk);
+                    }
+                }
             })
             .catch(err => {
                 res.status(500).send(err.message);
             });
-            
-        }
     }
 })
 
@@ -80,7 +80,7 @@ router.get('/sdisk', (req, res) => {
       // Log the list of disks
       const newData = disks.map((item) => ({
         ...item,
-        id: uuidv4(),
+        id: item._mounted,
       }));
 
       res.status(201).send(newData);
@@ -102,12 +102,12 @@ router.get('/disk', (req, res) => {
 });
 
 router.post('/disk', (req, res) => {
-    const id = uuidv4();
     const disk = {
-        id:id,
+        id:req.body.id,
         name:req.body.name,
         limit:req.body.limit,
         mounted:req.body.mounted,
+        path:req.body.path,
     };
       
     db.insert(disk, (err, result) => {

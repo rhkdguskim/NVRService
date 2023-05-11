@@ -13,7 +13,7 @@ const { v4: uuidv4 } = require('uuid');
 const { PassThrough } = require('stream');
 const { Console } = require('console');
 const { Binary } = require('bson');
-
+const {isValidIPandPORT} = require('../classes/common')
 require('dotenv').config();
 const debug = process.env.DEBUG === 'true';
 
@@ -45,6 +45,27 @@ db.find({}, (err, cameras) => {
     }
 })
 
+function CheckSrv(req, res, next) {
+    if(!isValidIPandPORT(req.body.ip, req.body.port)) {
+        res.status(400).json("Invaild Ip And Port");
+        return ;
+    }
+    else{
+        next();
+    }
+  }
+
+  function CheckCam(req, res, next) {
+    const id = req.params.id || req.body.id;
+    if(MycameraList.get(id) === undefined) {
+        res.status(400).json("Invaild ID");
+        return ;
+    }
+    else {
+        next();
+    }
+  }
+
 router.ws('/ws/:id/', (ws, req) => {
     const camid = req.params.id;
     const uuid = uuidv4();
@@ -68,8 +89,9 @@ router.ws('/ws/:id/', (ws, req) => {
     })
   });
 
-router.post('/', (req, res) => {
+router.post('/', CheckSrv, (req, res) => {
     //console.log(req.body)
+        
     const id = uuidv4();
     const camera = {
         id:id,
@@ -85,7 +107,7 @@ router.post('/', (req, res) => {
       
     db.insert(camera, (err, result) => {
         if (err) {
-            res.status(500).send(err.message);
+            res.status(500).json(err.message);
         }
         else {
             const Camera = new cam(req.body.camname, req.body.ip, req.body.port , req.body.username, req.body.password, id);
@@ -94,29 +116,33 @@ router.post('/', (req, res) => {
             Camera.start();
             //Camera.StartCameraStream();
             MycameraList.set(id, Camera);
-            res.status(201).send(result);
+            res.status(201).json(result);
             ReloadData();
         }
     })
 });
 
-router.post('/profile', (req, res) => {
+router.post('/ptz/:id', (req, res) => {
+    
+});
+
+router.post('/profile',CheckSrv, (req, res) => {
     const Camera = new cam("fake", req.body.ip, req.body.port , req.session.onvifid, req.session.onvifpwd);
     Camera.connect();
 
     Camera.Emitter.on("offline", () =>
     {
-        res.send({Isonline:false});
+        res.json({Isonline:false});
     })
 
     Camera.Emitter.on("profile", (profiles) =>
     {
-        res.send({Isonline:true, profiles});
+        res.json({Isonline:true, profiles});
     })
 
 });
 
-router.get('/profile/:id', (req, res) => {
+router.get('/profile/:id',CheckCam, (req, res) => {
     const Camera = MycameraList.get(req.params.id);
     if(Camera === undefined)
         return;
@@ -124,21 +150,21 @@ router.get('/profile/:id', (req, res) => {
     if(Camera.profilelist === undefined)
         return;
 
-    res.send(Camera.profilelist);
+    res.json(Camera.profilelist);
 });
 
 router.get('/', (req, res) => {
     db.find({}, (err, cameras) => {
         if (err) {
-            res.status(500).send(err.message);
+            res.status(500).json(err.message);
         }
         else{
-            res.status(201).send(cameras);
+            res.status(201).json(cameras);
         }
     })
 });
 
-router.get('/capture/:id/', (req, res) => {
+router.get('/capture/:id/', CheckCam, (req, res) => {
     camid = req.params.id;
     const camera = MycameraList.get(camid);
     // create a new ffmpeg command
@@ -152,7 +178,6 @@ router.get('/capture/:id/', (req, res) => {
     // capture the output from ffmpeg and send in HTTP response
     command.on('error', (err) => {
       console.error(`ffmpeg error: ${err.message}`);
-      //res.status(500).send('Error capturing image.');
       command.kill();
     })
     .on('end', () => {
@@ -165,7 +190,7 @@ router.get('/capture/:id/', (req, res) => {
 
   });
 
-router.get('/:id/', (req, res) => {
+router.get('/:id/',CheckCam, (req, res) => {
     const camid = req.params.id;
     const uuid = uuidv4();
     const camera = MycameraList.get(camid);
@@ -185,22 +210,22 @@ router.get('/:id/', (req, res) => {
 
 });
 
-router.delete('/', (req,res) => {
+router.delete('/',CheckCam, (req,res) => {
     db.remove({id:req.body.id}, {}, (err, numRemoved) => {
         if(err) {
-            res.status(500).send(err.message);
+            res.status(500).json(err);
         }
         else{
             const camera = MycameraList.get(req.body.id);
             camera.stop();
             MycameraList.delete(req.body.id);
-            res.status(201).send(numRemoved.toString());
+            res.status(201).json(numRemoved.toString());
             ReloadData();
         }
     })
 });
 
-router.put('/', (req,res) => {
+router.put('/', CheckSrv, (req,res) => {
 
     const cam = {
         id:req.body.id,
@@ -236,10 +261,10 @@ router.put('/', (req,res) => {
         protocoltype : req.body.protocoltype,
     } } , { upsert: true } , (err, numRemoved) => {
         if(err) {
-            res.status(500).send(err.message);
+            res.status(500).json(err);
         }
         else{
-            res.status(201).send(numRemoved.toString());
+            res.status(201).json(numRemoved.toString());
             ReloadData();
         }
         

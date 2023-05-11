@@ -53,7 +53,8 @@ app.use(session({
 
 const requireLogin = (req, res, next) => {
   if (!req.session.islogined) {
-    res.redirect('/');
+  const alertMessage = '<script>alert("Login Required");</script>';
+  res.send(alertMessage);
   } else {
     next();
   }
