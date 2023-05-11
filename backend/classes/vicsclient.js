@@ -27,8 +27,8 @@ class VicsClient {
 
       // 메시지를 받았을 때
       this.ws.onmessage = (event) => {
-        console.log(event.data);
-        const cmd = event.data;
+        const cmd = new LinkProto.LinkCmd().deserializeBinary(event.data);
+        console.log(cmd)
         switch (cmd.type())
         {
             case LinkProto.LinkCmdType.LINK_CMD_LOGIN_RESP:
@@ -65,10 +65,6 @@ class VicsClient {
       this.ws.send(str);
     }
 
-    jsontostringify = (cmd) => {
-      return JSON.stringify(cmd);
-    }
-
     login = (strUser, strPasswd, strNonce) => {
       const cmd = new LinkProto.LinkCmd();
       const type = LinkProto.LinkCmdType.LINK_CMD_LOGIN_REQ;
@@ -82,7 +78,7 @@ class VicsClient {
       req.setStrpasswd(md5Output);
       cmd.setLoginreq(req);
     
-      return sendmessage(jsontostringify(cmd));
+      return this.sendmessage(cmd.serializeBinary());
     }
 
     searchrec = (id, start, end, rtype) => {
@@ -98,7 +94,7 @@ class VicsClient {
 
         cmd.setSearchrecreq(req);
       
-        return sendmessage(jsontostringify(cmd));
+        return this.sendmessage(cmd.serializeBinary());
     }
 
     searchhasrec = (id) => {
@@ -111,7 +107,7 @@ class VicsClient {
         
         cmd.setHasrecreq(req);
       
-        return sendmessage(jsontostringify(cmd));
+        return this.sendmessage(cmd.serializeBinary());
     }
 
     processsearchrecordresp = (cmd) => {

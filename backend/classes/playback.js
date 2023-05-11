@@ -27,8 +27,28 @@ class Playback {
 
       // 메시지를 받았을 때
       this.ws.onmessage = (event) => {
-        console.log(event.data);
-        const cmd = event.data;
+        if(this.logined)
+        {
+          const data = event.data;
+          const sizeofVideoFrameHeader = 4 + 4 + 4 + 4 + 4 + 4;
+
+          const header = data.slice(0, sizeofVideoFrameHeader);
+          const buffer = data.slice(sizeofVideoFrameHeader);
+
+          // Convert header fields to original values
+          const streamType = Number(header.slice(0, 4));
+          const frameType = Number(header.slice(4, 8));
+          const secs = Number(header.slice(8, 12));
+          const msecs = Number(header.slice(12, 16));
+          const dataLen = Number(header.slice(16, 20));
+          // video data
+
+          console.log("streamtype : ", streamType, "frameType : " , frameType, "secs : ", secs, "datalen : " , dataLen);
+          this.Emitter.emit('id', event.data);
+          return;
+        }
+        const cmd = new LinkProto.LinkCmd().deserializeBinary(event.data);
+        console.log(cmd);
         switch (cmd.type())
         {
           case LinkProto.LinkCmdType.LINK_CMD_LOGIN_RESP:
@@ -42,7 +62,7 @@ class Playback {
         };
         const json = JSON.parse(event.data);
         console.log(json);
-        this.Emitter.emit('id', event.data);
+        
       };
 
       // 연결이 닫혔을 때
@@ -53,10 +73,6 @@ class Playback {
 
     sendmessage = (str) => {
       this.ws.send(str);
-    }
-
-    jsontostringify = (cmd) => {
-      return JSON.stringify(cmd);
     }
 
     login = (strUser, strPasswd, strNonce) => {
@@ -72,7 +88,7 @@ class Playback {
       req.setStrpasswd(md5Output);
       cmd.setLoginreq(req);
     
-      return sendmessage(jsontostringify(cmd));
+      return this.sendmessage(cmd.serializeBinary());
     }
     
     startplayback = (id, playtime) => {
@@ -86,7 +102,7 @@ class Playback {
     
       cmd.setMiplaybackcmd(req);
     
-      return sendmessage(jsontostringify(cmd));
+      return this.sendmessage(cmd.serializeBinary());
     }
     
     stopplayback = (id) => {
@@ -99,7 +115,7 @@ class Playback {
     
       cmd.setMiplaystopcmd(req);
     
-      return sendmessage(jsontostringify(cmd));
+      return this.sendmessage(cmd.serializeBinary());
     }
     
     pauseplayback = (id) => {
@@ -112,7 +128,7 @@ class Playback {
     
       cmd.setMiplaypausecmd(req);
     
-      return sendmessage(jsontostringify(cmd));
+      return this.sendmessage(cmd.serializeBinary());
     }
     
     resumeplayback = (id) => {
@@ -123,8 +139,8 @@ class Playback {
       req.setStrid(id)
     
       cmd.setMiplayresumecmd(req);
-    
-      return sendmessage(jsontostringify(cmd));
+
+      return this.sendmessage(cmd.serializeBinary());
     }
     
     seekplayback = (id, playtime) => {
@@ -137,7 +153,7 @@ class Playback {
     
       cmd.setMiplayseekcmd(req);
     
-      return sendmessage(jsontostringify(cmd));
+      return this.sendmessage(cmd.serializeBinary());
     }
     
     speed = (id, speed) => {
@@ -150,7 +166,7 @@ class Playback {
     
       cmd.setMiplayspeedcmd(req);
     
-      return sendmessage(jsontostringify(cmd));
+      return this.sendmessage(cmd.serializeBinary());
     }
 
     processloginresp = (cmd, user, password) => {
