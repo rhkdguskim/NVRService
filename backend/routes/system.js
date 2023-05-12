@@ -2,6 +2,7 @@ var express = require("express");
 const expressWs = require("express-ws");
 const diskinfo = require('node-disk-info');
 const os = require('os-utils');
+const si = require('systeminformation');
 
 const Datastore = require('nedb');
 const db = new Datastore({ filename: 'db/DiskDB', autoload: true });
@@ -59,12 +60,21 @@ router.ws('/data', (ws, req) => {
         DiskList.forEach((values, key) => {
             free =+ values[0]._available;
         })
-
-        const used = total - free;
-        const disk = Math.round((used / total) * 100) || 0;
-        const cpu = Math.round((cpuUsage) * 100)
-            ws.send(JSON.stringify({ cpu, memory, disk }));
+        const network = 0;
+      si.networkInterfaces()
+      .then((interfaces) => {
+        const networkInterface = interfaces[0];
+        si.networkStats(networkInterface.iface)
+        .then((stats) => {
+            //console.log(stats);
+            const network = {rx:stats.rx_bytes, tx:stats.tx_bytes}
+            const used = total - free;
+            const disk = Math.round((used / total) * 100) || 0;
+            const cpu = Math.round((cpuUsage) * 100)
+            ws.send(JSON.stringify({ cpu, memory, disk, network }));
+           })
         });
+      })
     };
 
     sendUsage();

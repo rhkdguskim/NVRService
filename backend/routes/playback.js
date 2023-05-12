@@ -15,7 +15,12 @@ playbackws.startserver();
 vicsclientws.startserver();
 
 router.ws('/:id/:playtime', (ws, req) => {
-    console.log(req.params.id, req.params.playtime);
+    if(!playbackws.connected)
+        playbackws.startserver();
+    else
+        ws.close();
+
+    //console.log(req.params.id, req.params.playtime);
     const uuid = uuidv4();
     playbackws.startplayback(req.params.id, req.params.playtime, uuid);
     playbackws.Emitter.on(uuid, (data) => {
@@ -32,6 +37,16 @@ router.ws('/:id/:playtime', (ws, req) => {
     });
 });
 
+const CheckWebSocket = (req, res, next) => {
+    if(!playbackws.connected)
+        playbackws.startserver();
+
+    if(!vicsclientws.connected)
+        vicsclientws.startserver();
+
+    next();
+}
+
 const recMonth = (req, res, next) => {
     const id = req.body.id;
     const year = req.body.year;
@@ -39,7 +54,7 @@ const recMonth = (req, res, next) => {
     const day = req.body.day;
 
     if(day === undefined) {
-        console.log("Monthly Data");
+        //console.log("Monthly Data");
         const months = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ];
         const dayInMonth = months[req.body.month - 1];
         const recmap = [];
@@ -49,7 +64,7 @@ const recMonth = (req, res, next) => {
             const date = new Date(year, month-1, i, 0, 0, 0);
             const newdate = Math.floor(date.getTime() / 1000); // UNIX Timestamp
             const numString = i.toString();
-            console.log(newdate);
+            //console.log(newdate);
             recmap.push({"nId":`${numString}`,"nStart":newdate,"nEnd":newdate+86399,"nType":673197088})
         }
 
@@ -69,7 +84,7 @@ const recMonth = (req, res, next) => {
     }
 }
 
-router.post('/rec', recMonth, (req, res) => {
+router.post('/rec', CheckWebSocket, recMonth, (req, res) => {
     const id = req.body.id;
     const year = req.body.year;
     const month = req.body.month;

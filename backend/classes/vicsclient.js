@@ -11,6 +11,8 @@ class VicsClient {
       this.Emitter = new EventEmitter();
       this.userid = userid;
       this.password = password;
+      this.logintry = 0;
+      this.connected = false;
     }
 
     startserver = () => {
@@ -21,9 +23,15 @@ class VicsClient {
 
         console.log('Vic Client WebSocket Started');
         // 텍스트 데이터 전송
-
+        this.connected = true;
         this.ws.send(this.login(this.userid, this.password, "nonce"));
       };
+
+      this.ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        this.connected = false;
+        // Additional error handling logic can be added here
+      });
 
       // 메시지를 받았을 때
       this.ws.onmessage = (event) => {
@@ -57,6 +65,7 @@ class VicsClient {
       // 연결이 닫혔을 때
       this.ws.onclose = () => {
         console.log('Playback WebSocket Stopped');
+        this.connected = false;
       };
     }
 
@@ -88,7 +97,7 @@ class VicsClient {
     }
 
     processsearchrecordresp = (cmd) => {
-      console.log(cmd);
+      //console.log(cmd);
       if(cmd.searchRecResp.cList.cList)
         this.Emitter.emit('dayrec', cmd.searchRecResp.cList.cList);
       else
@@ -96,7 +105,7 @@ class VicsClient {
       }
     
     processhasrecordresp = (cmd) => {
-      console.log(cmd.hasRecResp.cList.cHasRec);
+      //console.log(cmd.hasRecResp.cList.cHasRec);
       
       if(cmd.hasRecResp.cList.cHasRec)
         this.Emitter.emit('monthrec', cmd.hasRecResp.cList.cHasRec);
@@ -105,13 +114,15 @@ class VicsClient {
     }
 
     processloginresp = (cmd, user, password) => {
-      if(cmd.loginResp.bRetNonce) {
+      if(cmd.loginResp.bRetNonce && this.logintry <=5) {
         return this.login(user, password, cmd.loginResp.strNonce)
       }
-
+      this.logintry ++;
       if (cmd.loginResp.bRet === true) {
         this.logined = true;
+        this.logintry = 0;
       }
+
   }
     
 }

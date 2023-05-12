@@ -54,10 +54,13 @@ function View() {
   const [totalPages, setTotalPages] = useState(1);
   const [progress, setProgress] = useState(0);
 
+  const [vodallfleg, setvodallflag] = useState(false);
+
   const [layout, setLayout] = useState([]);
 
   const progressRef = useRef(() => {});
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedGrid, setSelectedGrid] = useState(null);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
@@ -132,6 +135,24 @@ function View() {
     }
   };
 
+  const handleGridItemDragStop = (layout, oldItem, newItem) => {
+    setSelectedGrid(newItem.i);
+    console.log(newItem.i);
+  };
+
+  const handleGridItemResizeStop = (layout, oldItem, newItem) => {
+    setSelectedGrid(newItem.i);
+    console.log(newItem.i);
+  };
+
+  const vodAll = () => {
+    setvodallflag(true);
+  }
+
+  const liveAll = () => {
+    setvodallflag(false);
+  }
+
 
   async function fetchData() {
     const response = await fetch('/camera/');
@@ -150,7 +171,7 @@ function View() {
       //console.log(index);
       return (
         
-        <div key={index} onResizeStop={(e, d, ref, delta, position) => handleSizeChange(camera.idx, ref.clientWidth, ref.clientHeight)} style={{top: 0, left: 0, width: '100%', height: '100%' }} >
+        <div id={camera.id} onClick={(event) => console.log(event.target.id)} key={index} onResizeStop={(e, d, ref, delta, position) => handleSizeChange(camera.idx, ref.clientWidth, ref.clientHeight)} style={{top: 0, left: 0, width: '100%', height: '100%' } } >
           <div
           style={{
             position: 'absolute',
@@ -169,7 +190,7 @@ function View() {
           LIVE : {camera.camname} : {camera.ip}
         </div>
         <Box sx={{ top: 0, left: 0, width: '100%', height: '100%' }}>
-        <VideoPlayer setprogress = {setProgress} camid ={camera.id} type={camera.protocoltype} isvod={false} playtime={1680274800} style={{ width: '100%', height: '100%' } } />
+        <VideoPlayer setprogress = {setProgress} camid ={camera.id} type={camera.protocoltype} isvod={vodallfleg} playtime={1680274800} style={{ width: '100%', height: '100%' } } />
         </Box>
         </div>
       );
@@ -215,6 +236,8 @@ function View() {
   cols={{ lg: cols }}
   layouts={{ lg: layout }}
   onLayoutChange={handleLayoutChange}
+  onDragStop={handleGridItemDragStop}
+  onResizeStop={handleGridItemResizeStop}
   rowHeight={calculateRowHeight()}
   isDraggable={true}
   isResizable={false}
@@ -234,14 +257,14 @@ function View() {
      <Button variant="contained" onClick={() => updateLayout(1)}>VOD ALL</Button>
     </Grid>
     <Grid item>
-      <Button variant="contained" onClick={() => updateLayout(2)}>LIVE ALL</Button>
+      <Button variant="contained" onClick={() => liveAll}>LIVE ALL</Button>
     </Grid>
 
     <Grid item>
-    <Button variant="contained" onClick={() => updateLayout(3)}>VOD</Button>
+    <Button variant="contained" onClick={() => vodAll}>VOD</Button>
       </Grid>
       <Grid item>
-      <Button variant="contained"onClick={() => updateLayout(4)}>LIVE</Button>
+      <Button variant="contained"onClick={() => liveAll}>LIVE</Button>
       </Grid>
       </Grid>
       <LinearProgress variant="determinate" value={progress} onClick={handleProgressClick} 

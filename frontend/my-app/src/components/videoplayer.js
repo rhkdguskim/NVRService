@@ -4,7 +4,6 @@ import JsmpegPlayer from '../components/JsmpegPlayer';
 
 const VideoPlayer = ({setprogress, camid, type, isvod, playtime }) => {
   const [playing, setPlaying] = useState(true);
-  const [vod , setVod] = useState(isvod);
   const [streamType, SetStreamType] = useState('mp4');
   const [streamSrc, SetStreamSrc] = useState('');
   const [buffering, setBuffering] = useState(false);
@@ -25,13 +24,20 @@ const VideoPlayer = ({setprogress, camid, type, isvod, playtime }) => {
         break;
       case "mjpeg":
         SetStreamType('video/mp2t');
-        if(vod)
+        if(isvod)
+        {
           SetStreamSrc(`ws://${hostname}:${port}/playback/${camid}/${playtime}`)
+          console.log("VOD STARTED");
+        }
         else
+        {
           SetStreamSrc(`ws://${hostname}:${port}/camera/ws/${camid}`)
+          console.log("LIVE STARTED");
+        }
+          
         break;
     }
-  }, [vod]);
+  }, [isvod]);
 
 
 

@@ -14,6 +14,8 @@ class Playback {
       this.userid = userid;
       this.password = password;
       this.ChildProcess = new Map();
+      this.logintry = 0;
+      this.connected = false;
       //console.log(this.userid, this.password)
     }
 
@@ -22,17 +24,22 @@ class Playback {
       // 연결이 열릴 때
       this.ws.onopen = () => {
         console.log('Playback WebSocket Started');
+        this.connected = true;
         // 텍스트 데이터 전송
 
         this.ws.send(this.login(this.userid, this.password, "nonce"));
       };
+
+      this.ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        // Additional error handling logic can be added here
+      });
 
       // 메시지를 받았을 때
       this.ws.onmessage = (event) => {
         
         if(this.logined)
         {
-          const frameHeaderSize = 61; /* size of MiVideoFrameHeader structure in bytes */;
           const message = event.data;
           const frameHeader = {
             streamType: Number(message.readInt32BE(0)),
@@ -50,7 +57,6 @@ class Playback {
 
           if(!this.ChildProcess.has(frameHeader.UUID))
           {
-            console.log("spawned!!");
             const childprocess = spawn(ffmpeg_static, [
               '-i', 'pipe:0',
               '-f',
@@ -97,12 +103,13 @@ class Playback {
                break;
         };
         const json = JSON.parse(event.data);
-        console.log(json);
+        //console.log(json);
         
       };
 
       // 연결이 닫혔을 때
       this.ws.onclose = () => {
+        this.connected = true;
         console.log('Playback WebSocket Stopped');
       };
     }
@@ -122,80 +129,52 @@ class Playback {
     
     startplayback = (id, playtime, uuid) => {
       const type = "LINK_MI_CMD_PLAY_BACK_CMD";
-
       const msg = {"type":type,"MiplayBackCmd":{"strId":id,"nPlaytime":playtime,"struuid":uuid}};
-    
       return this.sendmessage(JSON.stringify(msg));
     }
     
     stopplayback = (uuid) => {
       const type = "LINK_MI_CMD_PLAY_STOP_CMD";
-
       const msg = {"type":type,"MiplayStopCmd":{"struuid":uuid}};
       this.ChildProcess.get(uuid).kill();
       this.ChildProcess.delete(uuid);
       return this.sendmessage(JSON.stringify(msg));
     }
     
-    pauseplayback = (id) => {
-      const cmd = new LinkProto.LinkCmd();
-      const type = LinkProto.LinkCmdType.LINK_MI_CMD_PLAY_PAUSE_CMD;
-      cmd.setType(type);
-    
-      const req = new LinkSystem.LinkMiPlayPauseCmd();
-      req.setStrid(id)
-    
-      cmd.setMiplaypausecmd(req);
-    
-      return this.sendmessage(cmd.serializeBinary());
+    pauseplayback = (uuid) => {
+      const type = "LINK_MI_CMD_PLAY_PAUSE_CMD";
+      const msg = {"type":type,"MiPlayPauseCmd":{"struuid":uuid}};
+      return this.sendmessage(JSON.stringify(msg));
     }
     
-    resumeplayback = (id) => {
-      const type = LinkProto.LinkCmdType.LINK_MI_CMD_PLAY_RESUME_CMD;
-      cmd.setType(type);
-    
-      const req = new LinkSystem.LinkMiPlayResumeCmd();
-      req.setStrid(id)
-    
-      cmd.setMiplayresumecmd(req);
-
-      return this.sendmessage(cmd.serializeBinary());
+    resumeplayback = (uuid) => {
+      const type = "LINK_MI_CMD_PLAY_RESUME_CMD";
+      const msg = {"type":type,"MiPlayResumeCmd":{"struuid":uuid}};
+      return this.sendmessage(JSON.stringify(msg));
     }
     
-    seekplayback = (id, playtime) => {
-      const type = LinkProto.LinkCmdType.LINK_MI_CMD_PLAY_SEEK_CMD;
-      cmd.setType(type);
-    
-      const req = new LinkSystem.LinkMiPlaySeekCmd();
-      req.setStrid(id)
-      req.setNplaytime(playtime)
-    
-      cmd.setMiplayseekcmd(req);
-    
-      return this.sendmessage(cmd.serializeBinary());
+    seekplayback = (uuid, playtime) => {
+      const type = "LINK_MI_CMD_PLAY_SEEK_CMD";
+      const msg = {"type":type,"MiplaySeekCmd":{"struuid":uuid, "nPlaytime":playtime}};
+      return this.sendmessage(JSON.stringify(msg));
     }
     
-    speed = (id, speed) => {
-      const type = LinkProto.LinkCmdType.LINK_MI_CMD_PLAY_SPEED_CMD;
-      cmd.setType(type);
-    
-      const req = new LinkSystem.LinkMiPlaySpeedCmd();
-      req.setStrid(id)
-      req.setFspeed(speed)
-    
-      cmd.setMiplayspeedcmd(req);
-    
-      return this.sendmessage(cmd.serializeBinary());
+    speed = (uuid, speed) => {
+      const type = "LINK_MI_CMD_PLAY_SEEK_CMD";
+      const msg = {"type":type,"MiplaySpeedCmd":{"struuid":uuid, "fSpeed":speed}};
+      return this.sendmessage(JSON.stringify(msg));
     }
 
     processloginresp = (cmd, user, password) => {
-        if(cmd.loginResp.bRetNonce) {
+        if(cmd.loginResp.bRetNonce && this.logintry <=5) {
           return this.login(user, password, cmd.loginResp.strNonce)
         }
-
+        this.logintry ++;
         if (cmd.loginResp.bRet === true) {
           this.logined = true;
+          this.logintry = 0;
         }
+
     }
     
 }

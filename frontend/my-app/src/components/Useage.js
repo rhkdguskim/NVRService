@@ -6,6 +6,7 @@ function App() {
   const [cpuData, setCpuData] = useState(0);
   const [memoryData, setMemoryData] = useState(0);
   const [diskData, setDiskData] = useState(0);
+  const [networkData, setnetworkData] = useState(0);
 
 
   const hostname = window.location.hostname;
@@ -22,6 +23,7 @@ function App() {
       setCpuData(data.cpu);
       setMemoryData(data.memory);
       setDiskData(data.disk);
+      setnetworkData(data.network);
     };
 
     return () => {
@@ -48,6 +50,11 @@ function App() {
     <div style={{ marginRight: '16px' }}>
     <h3>Disk</h3>
       <CircularProgressbar value={diskData} text={`${diskData}%`} />
+    </div>
+
+    <div style={{ marginRight: '16px' }}>
+    <h3>Network</h3>
+      <CircularProgressbar value={networkData} text={`${networkData}%`} />
     </div>
   </div>
 </div>
