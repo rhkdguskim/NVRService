@@ -5,55 +5,91 @@ const LinkProto = require("../protobuf/linkproto_pb")
 const LinkSystem = require("../protobuf/linksystem_pb")
 const VidConf = require("../protobuf/vidconf_pb")
 const EventEmitter = require('events');
+const { spawn } = require('child_process');
+const ffmpeg_static = require('ffmpeg-static');
 
 class Playback {
   constructor(userid, password) {
       this.Emitter = new EventEmitter();
-      this.userid = userid | "admin";
-      this.password = password | "admin";
+      this.userid = userid;
+      this.password = password;
+      this.ChildProcess = new Map();
+      //console.log(this.userid, this.password)
     }
 
     startserver = () => {
-      this.ws = new WebSocket('ws://110.110.10.80:9080/MilinkUserstream');
-
+      this.ws = new WebSocket('ws://127.0.0.1:9080/MilinkUserstream');
       // 연결이 열릴 때
       this.ws.onopen = () => {
-
         console.log('Playback WebSocket Started');
         // 텍스트 데이터 전송
 
-        this.ws.send(this.Login(this.userid, this.password, "nonce"));
+        this.ws.send(this.login(this.userid, this.password, "nonce"));
       };
 
       // 메시지를 받았을 때
       this.ws.onmessage = (event) => {
+        
         if(this.logined)
         {
-          const data = event.data;
-          const sizeofVideoFrameHeader = 4 + 4 + 4 + 4 + 4 + 4;
+          const frameHeaderSize = 61; /* size of MiVideoFrameHeader structure in bytes */;
+          const message = event.data;
+          const frameHeader = {
+            streamType: Number(message.readInt32BE(0)),
+            frameType: Number(message.readInt32BE(4)),
+            seq: Number(message.readUInt32BE(8)),
+            secs: Number(message.readUInt32BE(12)),
+            msecs: Number(message.readUInt32BE(16)),
+            dataLen: message.readInt32BE(20),
+            UUID: message.slice(24, 60).toString(),
+          };
+          const data = message.slice(61);
+          
+          //console.log(frameHeader);
+          //console.log(data);
 
-          const header = data.slice(0, sizeofVideoFrameHeader);
-          const buffer = data.slice(sizeofVideoFrameHeader);
+          if(!this.ChildProcess.has(frameHeader.UUID))
+          {
+            console.log("spawned!!");
+            const childprocess = spawn(ffmpeg_static, [
+              '-i', 'pipe:0',
+              '-f',
+              'mpegts',
+              '-codec:v',
+              'mpeg1video',
+              '-r',
+              '30',
+              '-b:v', '1000k',
+               '-preset', 'ultrafast',
+               `-tune`, `zerolatency`,
+              'pipe:1',
+            ]);
 
-          // Convert header fields to original values
-          const streamType = Number(header.slice(0, 4));
-          const frameType = Number(header.slice(4, 8));
-          const secs = Number(header.slice(8, 12));
-          const msecs = Number(header.slice(12, 16));
-          const dataLen = Number(header.slice(16, 20));
-          // video data
+            this.ChildProcess.set(frameHeader.UUID, childprocess);
+            
+            childprocess.stderr.on('data', (data) => {
+              console.log(data.toString());
+            });
 
-          console.log("streamtype : ", streamType, "frameType : " , frameType, "secs : ", secs, "datalen : " , dataLen);
-          this.Emitter.emit('id', event.data);
+            this.Emitter.emit(frameHeader.UUID, {start:true});
+
+            childprocess.stdout.on('data', (data) => {
+              //console.log(frameHeader.UUID);
+              this.Emitter.emit(frameHeader.UUID, {start:true, data:data});
+            });
+          }
+          //console.log(this.ChildProcess.get(frameHeader.UUID));
+          this.ChildProcess.get(frameHeader.UUID).stdin.write(data);
           return;
         }
-        const cmd = new LinkProto.LinkCmd().deserializeBinary(event.data);
-        console.log(cmd);
-        switch (cmd.type())
+        const cmd = JSON.parse(event.data);
+        //console.log(cmd);
+        //console.log(cmd);
+        switch (cmd.type)
         {
-          case LinkProto.LinkCmdType.LINK_CMD_LOGIN_RESP:
+          case 'LINK_CMD_LOGIN_RESP':
           {
-            return processloginresp(cmd, this.userid, this.password);
+            return this.processloginresp(cmd, this.userid, this.password);
             break;
           }
       
@@ -76,46 +112,29 @@ class Playback {
     }
 
     login = (strUser, strPasswd, strNonce) => {
-      const cmd = new LinkProto.LinkCmd();
-      const type = LinkProto.LinkCmdType.LINK_CMD_LOGIN_REQ;
-      cmd.setType(type);
-      
+      const type = "LINK_CMD_LOGIN_REQ";
       const pass = strNonce + strPasswd;
     
       const md5Output = crypto.createHash('md5').update(pass).digest('hex');
-      const req = new LinkSystem.LinkLoginReq();
-      req.setStrusername(strUser);
-      req.setStrpasswd(md5Output);
-      cmd.setLoginreq(req);
-    
-      return this.sendmessage(cmd.serializeBinary());
+      const msg = {"type":type,"loginReq":{"strUserName":strUser,"strPasswd":md5Output}};
+      return this.sendmessage(JSON.stringify(msg));
     }
     
-    startplayback = (id, playtime) => {
-      const cmd = new LinkProto.LinkCmd();
-      const type = LinkProto.LinkCmdType.LINK_MI_CMD_PLAY_BACK_CMD;
-      cmd.setType(type);
+    startplayback = (id, playtime, uuid) => {
+      const type = "LINK_MI_CMD_PLAY_BACK_CMD";
+
+      const msg = {"type":type,"MiplayBackCmd":{"strId":id,"nPlaytime":playtime,"struuid":uuid}};
     
-      const req = new LinkSystem.LinkMiPlayBackCmd();
-      req.setStrid(id)
-      req.setNplaytime(playtime)
-    
-      cmd.setMiplaybackcmd(req);
-    
-      return this.sendmessage(cmd.serializeBinary());
+      return this.sendmessage(JSON.stringify(msg));
     }
     
-    stopplayback = (id) => {
-      const cmd = new LinkProto.LinkCmd();
-      const type = LinkProto.LinkCmdType.LINK_MI_CMD_PLAY_STOP_CMD;
-      cmd.setType(type);
-    
-      const req = new LinkSystem.LinkMiPlayStopCmd();
-      req.setStrid(id)
-    
-      cmd.setMiplaystopcmd(req);
-    
-      return this.sendmessage(cmd.serializeBinary());
+    stopplayback = (uuid) => {
+      const type = "LINK_MI_CMD_PLAY_STOP_CMD";
+
+      const msg = {"type":type,"MiplayStopCmd":{"struuid":uuid}};
+      this.ChildProcess.get(uuid).kill();
+      this.ChildProcess.delete(uuid);
+      return this.sendmessage(JSON.stringify(msg));
     }
     
     pauseplayback = (id) => {
@@ -170,15 +189,11 @@ class Playback {
     }
 
     processloginresp = (cmd, user, password) => {
-      if(!cmd.hasLoginresp())
-        return false;
-
-        const resp =  cmd.getLoginresp();
-        if(resp.bretnonce() == true) {
-          return login(user, password, resp.getStrnonce())
+        if(cmd.loginResp.bRetNonce) {
+          return this.login(user, password, cmd.loginResp.strNonce)
         }
 
-        if (resp.bret() == true) {
+        if (cmd.loginResp.bRet === true) {
           this.logined = true;
         }
     }

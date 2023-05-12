@@ -9,43 +9,42 @@ const EventEmitter = require('events');
 class VicsClient {
   constructor(userid, password) {
       this.Emitter = new EventEmitter();
-      this.userid = userid | "admin";
-      this.password = password | "admin";
+      this.userid = userid;
+      this.password = password;
     }
 
     startserver = () => {
-      this.ws = new WebSocket('ws://110.110.10.80:9080/');
+      this.ws = new WebSocket('ws://127.0.0.1:9080/linkproto');
 
       // 연결이 열릴 때
       this.ws.onopen = () => {
 
-        console.log('Playback WebSocket Started');
+        console.log('Vic Client WebSocket Started');
         // 텍스트 데이터 전송
 
-        this.ws.send(this.Login(this.userid, this.password, "nonce"));
+        this.ws.send(this.login(this.userid, this.password, "nonce"));
       };
 
       // 메시지를 받았을 때
       this.ws.onmessage = (event) => {
-        const cmd = new LinkProto.LinkCmd().deserializeBinary(event.data);
-        console.log(cmd)
-        switch (cmd.type())
+        const cmd = JSON.parse(event.data);
+        switch (cmd.type)
         {
-            case LinkProto.LinkCmdType.LINK_CMD_LOGIN_RESP:
+            case 'LINK_CMD_LOGIN_RESP':
             {
-                return processloginresp(cmd, this.userid, this.password);
+              return this.processloginresp(cmd, this.userid, this.password);
+              break;
+            }
+
+            case 'LINK_CMD_SEARCH_RECORD_RESP':
+            {
+                return this.processsearchrecordresp(cmd);
                 break;
             }
 
-            case LinkProto.LinkCmdType.LINK_CMD_SEARCH_RECORD_RESP:
+            case 'LINK_CMD_HAS_RECORD_RESP':
             {
-                return processsearchrecordresp(cmd);
-                break;
-            }
-
-            case LinkProto.LinkCmdType.LINK_CMD_HAS_RECORD_RESP:
-            {
-                return processhasrecordresp(cmd);
+                return this.processhasrecordresp(cmd);
                 break;
             }
 
@@ -66,105 +65,54 @@ class VicsClient {
     }
 
     login = (strUser, strPasswd, strNonce) => {
-      const cmd = new LinkProto.LinkCmd();
-      const type = LinkProto.LinkCmdType.LINK_CMD_LOGIN_REQ;
-      cmd.setType(type);
-      
+      const type = "LINK_CMD_LOGIN_REQ";
       const pass = strNonce + strPasswd;
     
       const md5Output = crypto.createHash('md5').update(pass).digest('hex');
-      const req = new LinkSystem.LinkLoginReq();
-      req.setStrusername(strUser);
-      req.setStrpasswd(md5Output);
-      cmd.setLoginreq(req);
-    
-      return this.sendmessage(cmd.serializeBinary());
+      const msg = {"type":type,"loginReq":{"strUserName":strUser,"strPasswd":md5Output}};
+      return this.sendmessage(JSON.stringify(msg));
     }
 
-    searchrec = (id, start, end, rtype) => {
-        const cmd = new LinkProto.LinkCmd();
-        const type = LinkProto.LinkCmdType.LINK_CMD_SEARCH_RECORD_REQ;
-        cmd.setType(type);
-
-        const req = new LinkSystem.LinkSearchRecordReq();
-        req.setStrid(id);
-        req.setNstart(start);
-        req.setNend(end);
-        req.setNtype(rtype);
-
-        cmd.setSearchrecreq(req);
-      
-        return this.sendmessage(cmd.serializeBinary());
+    searchrec = (id, start, end) => {
+        const cmd = "LINK_CMD_SEARCH_RECORD_REQ";
+        const msg = {"type":cmd,"searchRecReq":{"strId":id,"nStart":start,"nEnd":end,"nType":-1}}
+        this.sendmessage(JSON.stringify(msg));
     }
 
-    searchhasrec = (id) => {
-        const cmd = new LinkProto.LinkCmd();
-        const type = LinkProto.LinkCmdType.LINK_CMD_HAS_RECORD_REQ;
-        cmd.setType(type);
-
-        const req = new LinkSystem.LinkHasRecordReq();
-        req.setStrid(id);
-        
-        cmd.setHasrecreq(req);
-      
-        return this.sendmessage(cmd.serializeBinary());
+    searchhasrec = (id, HasRec) => {
+      const cmd = "LINK_CMD_HAS_RECORD_REQ";
+      const msg = {"type":"LINK_CMD_HAS_RECORD_REQ",
+      "hasRecReq":{"strId":id,
+      "cList":{"cHasRec":HasRec}}}
+      this.sendmessage(JSON.stringify(msg));
     }
 
     processsearchrecordresp = (cmd) => {
-        if(!cmd.hasSearchrecresp())
-            return false;
-        
-        const map = new Map();
-        const resp = cmd.getSearchrecresp();
-        clist = resp.getChasrecList();
-        clist.map(item => {
-            
-            itemNew1.id = item.nid,
-            itemNew1.start = item.nstart;
-            itemNew1.end = item.nend;
-            itemNew1.type = item.ntype;
-            map.set(item.nid, itemNew1);
-        })
-
-        this.Emitter.emit('hasrec', map);
-    
-      return true;
+      console.log(cmd);
+      if(cmd.searchRecResp.cList.cList)
+        this.Emitter.emit('dayrec', cmd.searchRecResp.cList.cList);
+      else
+        this.Emitter.emit('dayrec', []);
       }
     
     processhasrecordresp = (cmd) => {
-        if(!cmd.hasHasrecresp())
-            return false;
-        const map = new Map();
-        const resp = cmd.getHasrecresp();
-        clist = resp.getChasrecList();
-        clist.map(item => {
-            
-            itemNew1.id = item.nid,
-            itemNew1.start = item.nstart;
-            itemNew1.end = item.nend;
-            itemNew1.type = item.ntype;
-            itemNew1.has = item.bhas;
-            map.set(item.nid, itemNew1);
-        })
-
-        this.Emitter.emit('hasrec', map);
-    
-      return true;
+      console.log(cmd.hasRecResp.cList.cHasRec);
+      
+      if(cmd.hasRecResp.cList.cHasRec)
+        this.Emitter.emit('monthrec', cmd.hasRecResp.cList.cHasRec);
+      else
+        this.Emitter.emit('monthrec', []);    
     }
 
     processloginresp = (cmd, user, password) => {
-      if(!cmd.hasLoginresp())
-        return false;
+      if(cmd.loginResp.bRetNonce) {
+        return this.login(user, password, cmd.loginResp.strNonce)
+      }
 
-        const resp =  cmd.getLoginresp();
-        if(resp.bretnonce === true) {
-          return login(user, password, resp.getStrnonce())
-        }
-
-        if (resp.bret === true) {
-          this.logined = true;
-        }
-    }
+      if (cmd.loginResp.bRet === true) {
+        this.logined = true;
+      }
+  }
     
 }
 

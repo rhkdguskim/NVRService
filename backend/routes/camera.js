@@ -120,7 +120,7 @@ router.ws('/ws/:id/', (ws, req) => {
     });
 
     ws.on('message', (data) => {
-        //console.log("From Client : "+data);
+        console.log("From Client : "+data);
     })
   });
 

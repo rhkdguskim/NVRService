@@ -2,15 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 import JsmpegPlayer from '../components/JsmpegPlayer';
 
-const VideoPlayer = ({setprogress, camid, type }) => {
+const VideoPlayer = ({setprogress, camid, type, isvod, playtime }) => {
   const [playing, setPlaying] = useState(true);
+  const [vod , setVod] = useState(isvod);
   const [streamType, SetStreamType] = useState('mp4');
   const [streamSrc, SetStreamSrc] = useState('');
   const [buffering, setBuffering] = useState(false);
   const playerRef = useRef(null);
   const hostname = window.location.hostname;
   const port = window.location.port;
-  let jsmpegPlayer = null;
 
   useEffect(() => {
     switch(type)
@@ -25,10 +25,13 @@ const VideoPlayer = ({setprogress, camid, type }) => {
         break;
       case "mjpeg":
         SetStreamType('video/mp2t');
-        SetStreamSrc(`ws://${hostname}:${port}/camera/ws/${camid}`)
+        if(vod)
+          SetStreamSrc(`ws://${hostname}:${port}/playback/${camid}/${playtime}`)
+        else
+          SetStreamSrc(`ws://${hostname}:${port}/camera/ws/${camid}`)
         break;
     }
-  }, []);
+  }, [vod]);
 
 
 

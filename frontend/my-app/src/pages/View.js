@@ -10,7 +10,7 @@ import "react-resizable/css/styles.css";
 import Cookies from 'js-cookie';
 import LinearProgress from '@mui/material/LinearProgress';
 import { Calendar } from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
+//import 'react-calendar/dist/Calendar.css';
 
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -169,7 +169,7 @@ function View() {
           LIVE : {camera.camname} : {camera.ip}
         </div>
         <Box sx={{ top: 0, left: 0, width: '100%', height: '100%' }}>
-        <VideoPlayer setprogress = {setProgress} camid ={camera.id} type={camera.protocoltype} style={{ width: '100%', height: '100%' }} />
+        <VideoPlayer setprogress = {setProgress} camid ={camera.id} type={camera.protocoltype} isvod={false} playtime={1680274800} style={{ width: '100%', height: '100%' } } />
         </Box>
         </div>
       );
