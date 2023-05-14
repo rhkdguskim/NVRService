@@ -5,7 +5,7 @@ const NedbStore = require('connect-nedb-session')(session);
 var HLSServer = require("hls-server");
 
 const camera = require("./routes/camera");
-const playback = require("./routes/playback");
+const play = require("./routes/play");
 const system = require("./routes/system");
 const videos = require("./routes/videos");
 const onvif = require("./routes/onvif");
@@ -39,7 +39,7 @@ var hls = new HLSServer(app, {
 
 expressWs(app);
 expressWs(camera);
-expressWs(playback);
+expressWs(play);
 expressWs(system);
 
 
@@ -78,7 +78,7 @@ app.use((req, res, next) => {
 
 app.use("/user", user);
 app.use("/camera", requireLogin, camera);
-app.use("/playback", requireLogin, playback);
+app.use("/play", requireLogin, play);
 app.use("/videos", requireLogin, videos);
 app.use("/onvif", requireLogin, onvif);
 app.use("/system", requireLogin, system);

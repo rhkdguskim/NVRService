@@ -38,24 +38,35 @@ class VicsClient {
         const cmd = JSON.parse(event.data);
         switch (cmd.type)
         {
-            case 'LINK_CMD_LOGIN_RESP':
-            {
-              return this.processloginresp(cmd, this.userid, this.password);
+          case 'LINK_CMD_ADD_CAM_RESP' :
+          {
+            return this.processaddcamResp();
+            break;
+          }
+
+          case 'LINK_CMD_DEL_CAM_RESP' :
+          {
+            return this.processdelcamresp();
+            break;
+          }
+          
+          case 'LINK_CMD_LOGIN_RESP':
+          {
+            return this.processloginresp(cmd, this.userid, this.password);
+            break;
+          }
+
+          case 'LINK_CMD_SEARCH_RECORD_RESP':
+          {
+              return this.processsearchrecordresp(cmd);
               break;
-            }
+          }
 
-            case 'LINK_CMD_SEARCH_RECORD_RESP':
-            {
-                return this.processsearchrecordresp(cmd);
-                break;
-            }
-
-            case 'LINK_CMD_HAS_RECORD_RESP':
-            {
-                return this.processhasrecordresp(cmd);
-                break;
-            }
-
+          case 'LINK_CMD_HAS_RECORD_RESP':
+          {
+              return this.processhasrecordresp(cmd);
+              break;
+          }
       
           default:
                break;
@@ -96,21 +107,12 @@ class VicsClient {
       this.sendmessage(JSON.stringify(msg));
     }
 
-    processsearchrecordresp = (cmd) => {
-      //console.log(cmd);
-      if(cmd.searchRecResp.cList.cList)
-        this.Emitter.emit('dayrec', cmd.searchRecResp.cList.cList);
-      else
-        this.Emitter.emit('dayrec', []);
-      }
-    
-    processhasrecordresp = (cmd) => {
-      //console.log(cmd.hasRecResp.cList.cHasRec);
-      
-      if(cmd.hasRecResp.cList.cHasRec)
-        this.Emitter.emit('monthrec', cmd.hasRecResp.cList.cHasRec);
-      else
-        this.Emitter.emit('monthrec', []);    
+    addcamera = (camera) => {
+
+    }
+
+    delcamera = (id) => {
+
     }
 
     processloginresp = (cmd, user, password) => {
@@ -122,6 +124,28 @@ class VicsClient {
         this.logined = true;
         this.logintry = 0;
       }
+
+    processsearchrecordresp = (cmd) => {
+      if(cmd.searchRecResp.cList.cList)
+        this.Emitter.emit('dayrec', cmd.searchRecResp.cList.cList);
+      else
+        this.Emitter.emit('dayrec', []);
+      }
+    
+    processhasrecordresp = (cmd) => {
+      if(cmd.hasRecResp.cList.cHasRec)
+        this.Emitter.emit('monthrec', cmd.hasRecResp.cList.cHasRec);
+      else
+        this.Emitter.emit('monthrec', []);    
+    }
+
+    processaddcamResp = (cmd) => {
+
+    }
+
+    processdelcamresp = (cmd) => {
+
+    }
 
   }
     

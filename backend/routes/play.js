@@ -1,45 +1,124 @@
 var express = require("express");
 const expressWs = require("express-ws");
-const Playback = require("../classes/playback");
+const VicStream = require("../classes/vicsstream");
 const VicsClient = require("../classes/vicsclient");
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 
 expressWs(router);
 
-const playbackws = new Playback("admin","admin");
+const vicsstreamws = new VicStream("admin","admin");
 const vicsclientws = new VicsClient("admin", "admin");
 const uuid = uuidv4();
 
-playbackws.startserver();
+vicsstreamws.startserver();
 vicsclientws.startserver();
 
-router.ws('/:id/:playtime', (ws, req) => {
-    if(!playbackws.connected)
-        playbackws.startserver();
+router.ws('/playback/:uuid', (ws, req) => {
+    if(!vicsstreamws.connected)
+        vicsstreamws.startserver();
     else
         ws.close();
-
-    //console.log(req.params.id, req.params.playtime);
-    const uuid = uuidv4();
-    playbackws.startplayback(req.params.id, req.params.playtime, uuid);
-    playbackws.Emitter.on(uuid, (data) => {
+    
+    vicsstreamws.Emitter.on(`play/${req.params.uuid}`, (data) => {
         ws.send(data.data);
     });
 
     ws.on("message ", (data) => {
         
+    })
+
+    ws.on('close', () => {
+        vicsstreamws.streamstop(uuid);
+    });
+});
+
+router.ws('/mainstream/:uuid', (ws, req) => {
+    if(!vicsstreamws.connected)
+        vicsstreamws.startserver();
+    else
+        ws.close();
+    
+    const stream = vicsstreamws.Addlive(req.params.uuid);
+
+    stream.on('data', (data) => {
+        ws.send(data.data);
+    });
+
+    ws.on("message ", (data) => {
         
     })
 
     ws.on('close', () => {
-        playbackws.stopplayback(uuid);
+        vicsstreamws.DelLive(uuid);
     });
 });
 
+router.ws('/substream/:uuid', (ws, req) => {
+    if(!vicsstreamws.connected)
+        vicsstreamws.startserver();
+    else
+        ws.close();
+    
+    const stream = vicsstreamws.Addlive(req.params.uuid);
+
+    stream.on('data', (data) => {
+        ws.send(data.data);
+    });
+
+    ws.on("message ", (data) => {
+        
+    })
+
+    ws.on('close', () => {
+        vicsstreamws.DelLive(uuid);
+    });
+});
+
+router.ws('/timestamp/:uuid', (ws, req) => {
+    if(!vicsstreamws.connected)
+        vicsstreamws.startserver();
+    else
+        ws.close();
+    
+    vicsstreamws.Emitter.on(`timestamp/${req.params.uuid}`, (data) => {
+        ws.send(data.time);
+    });
+
+    ws.on("message ", (data) => {
+        
+    })
+});
+
+router.post('/playback/:id/:playtime/:uuid', (req, res) => {
+    vicsstreamws.startplayback(req.params.id, req.params.playtime, req.params.uuid);
+    res.status(201).json({result:true});
+});
+
+router.post('/pause/:uuid', (req, res) => {
+    vicsstreamws.pauseplayback(req.params.uuid);
+    res.status(201).json({result:true});
+});
+
+router.post('/resume/:uuid', (req, res) => {
+    vicsstreamws.resumeplayback(req.params.uuid);
+    res.status(201).json({result:true});
+});
+
+router.post('/seek/:uuid/:playtime', (req, res) => {
+    vicsstreamws.seekplayback(req.params.uuid, req.params.playtime);
+    res.status(201).json({result:true});
+});
+
+router.post('/speed/:uuid/:speed', (req, res) => {
+    vicsstreamws.speed(req.params.uuid, req.params.speed);
+    res.status(201).json({result:true});
+});
+
+
 const CheckWebSocket = (req, res, next) => {
-    if(!playbackws.connected)
-        playbackws.startserver();
+    if(!vicsstreamws.connected)
+        vicsstreamws.startserver();
 
     if(!vicsclientws.connected)
         vicsclientws.startserver();

@@ -43,6 +43,13 @@ module.exports = (app) => {
       );
 
       app.use(
+        createProxyMiddleware('/playback', {
+          target: 'http://localhost:8000/',
+          changeOrigin: true,
+        }),
+      );
+
+      app.use(
         '/data',
         createProxyMiddleware({
           target: 'ws://localhost:8000/',

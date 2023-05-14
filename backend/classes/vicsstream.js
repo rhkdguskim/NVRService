@@ -7,8 +7,9 @@ const VidConf = require("../protobuf/vidconf_pb")
 const EventEmitter = require('events');
 const { spawn } = require('child_process');
 const ffmpeg_static = require('ffmpeg-static');
+const { PassThrough } = require('stream');
 
-class Playback {
+class VicStream {
   constructor(userid, password) {
       this.Emitter = new EventEmitter();
       this.userid = userid;
@@ -16,14 +17,25 @@ class Playback {
       this.ChildProcess = new Map();
       this.logintry = 0;
       this.connected = false;
+      this.oldTime = 0;
+      this.streamMap = new Map();
+      this.liveStreamMap = new Map();
       //console.log(this.userid, this.password)
+    }
+
+    timestamp = (uuid, sec) => {
+      if(this.oldTime !== sec)
+      {
+        this.oldTime = sec;
+        this.Emitter.emit(`timestamp/${uuid}`, {time:sec});
+      }
     }
 
     startserver = () => {
       this.ws = new WebSocket('ws://127.0.0.1:9080/MilinkUserstream');
       // 연결이 열릴 때
       this.ws.onopen = () => {
-        console.log('Playback WebSocket Started');
+        console.log('VicsStream WebSocket Started');
         this.connected = true;
         // 텍스트 데이터 전송
 
@@ -51,41 +63,14 @@ class Playback {
             UUID: message.slice(24, 60).toString(),
           };
           const data = message.slice(61);
-          
-          //console.log(frameHeader);
-          //console.log(data);
 
-          if(!this.ChildProcess.has(frameHeader.UUID))
-          {
-            const childprocess = spawn(ffmpeg_static, [
-              '-i', 'pipe:0',
-              '-f',
-              'mpegts',
-              '-codec:v',
-              'mpeg1video',
-              '-r',
-              '30',
-              '-b:v', '1000k',
-               '-preset', 'ultrafast',
-               `-tune`, `zerolatency`,
-              'pipe:1',
-            ]);
-
-            this.ChildProcess.set(frameHeader.UUID, childprocess);
-            
-            childprocess.stderr.on('data', (data) => {
-              console.log(data.toString());
-            });
-
-            this.Emitter.emit(frameHeader.UUID, {start:true});
-
-            childprocess.stdout.on('data', (data) => {
-              //console.log(frameHeader.UUID);
-              this.Emitter.emit(frameHeader.UUID, {start:true, data:data});
-            });
+          this.timestamp(frameHeader.UUID, frameHeader.secs);
+          if(this.streamMap.has(frameHeader.UUID)) {
+            if(this.streamMap.get(frameHeader.UUID) === "vod") {
+              this.ChildProcess.get(uuid).stdin.write(data);
+            }
           }
-          //console.log(this.ChildProcess.get(frameHeader.UUID));
-          this.ChildProcess.get(frameHeader.UUID).stdin.write(data);
+
           return;
         }
         const cmd = JSON.parse(event.data);
@@ -110,12 +95,93 @@ class Playback {
       // 연결이 닫혔을 때
       this.ws.onclose = () => {
         this.connected = true;
-        console.log('Playback WebSocket Stopped');
+        console.log('VicsStream WebSocket Stopped');
       };
+    }
+
+    startMJPEG(UUID) {
+      if(!this.ChildProcess.has(UUID))
+      {
+        const childprocess = spawn(ffmpeg_static, [
+          '-i', 'pipe:0',
+          '-f',
+          'mpegts',
+          '-codec:v',
+          'mpeg1video',
+          '-r',
+          '30',
+          '-b:v', '1000k',
+            '-preset', 'ultrafast',
+            `-tune`, `zerolatency`,
+          'pipe:1',
+        ]);
+
+        this.ChildProcess.set(UUID, childprocess);
+        
+        childprocess.stderr.on('data', (data) => {
+          console.log(data.toString());
+        });
+
+        childprocess.stdout.on('data', (data) => {
+          this.Emitter.emit(`play/${UUID}`, {data:data});
+        });
+      }
+    }
+
+    startMP4(UUID) {
+      if(!this.ChildProcess.has(UUID))
+      {
+        const childprocess = spawn(ffmpeg_static, [
+          '-i', 'pipe:0',
+          '-vcodec',
+          'copy',
+          '-f' ,'mp4',
+          `-preset`, `ultrafast`,
+          `-tune`, `zerolatency`,
+          '-movflags',
+          'frag_keyframe+empty_moov+default_base_moof+separate_moof+omit_tfhd_offset',
+          'pipe:1',
+        ]);
+
+        this.ChildProcess.set(UUID, childprocess);
+        
+        childprocess.stderr.on('data', (data) => {
+          console.log(data.toString());
+        });
+
+        childprocess.stdout.on('data', (data) => {
+          if(this.streamMap.has(UUID)) {
+            if(this.streamMap.get(UUID) === 'vod') {
+              this.Emitter.emit(UUID, {start:true, data:data});
+            }
+            else {
+              this.liveStreamMap.forEach((value, key) => {
+                value.write(data);
+              })
+            }
+          }
+        });
+      }
     }
 
     sendmessage = (str) => {
       this.ws.send(str);
+    }
+
+    checkStream(uuid)
+    {
+      if(this.streamMap.has(uuid))
+      {
+        if(this.streamMap.get(uuid) == 'live')
+        {
+          this.stoplive();
+        }
+        else
+        {
+          this.stopvod();
+        }
+        this.streamMap.delete(uuid);
+      }
     }
 
     login = (strUser, strPasswd, strNonce) => {
@@ -126,8 +192,39 @@ class Playback {
       const msg = {"type":type,"loginReq":{"strUserName":strUser,"strPasswd":md5Output}};
       return this.sendmessage(JSON.stringify(msg));
     }
+
+    Addlive = (uuid) => {
+      const stream = new PassThrough();
+      this.liveStreamMap.set(uuid, stream);
+      return stream;
+    }
+
+    DelLive = (uuid) => {
+      this.liveStreamMap.delete(uuid);
+    }
+
+    startlive = (id, stream, uuid) => {
+      checkStream(uuid);
+      this.streamMap.set(uuid, "live");
+      this.startMJPEG(uuid);
+      const type = "LINK_MI_CMD_STOP_LIVE_CMD";
+      const msg = {"type":type,"MistartLiveCmd":{"strId":id,"nStream":stream,"struuid":uuid}};
+      return this.sendmessage(JSON.stringify(msg));
+    }
+
+    stoplive = (uuid) => {
+      const type = "LINK_MI_CMD_PLAY_BACK_CMD";
+      const msg = {"type":type,"MistopLiveCmd":{"struuid":uuid}};
+      this.ChildProcess.get(uuid).kill();
+      this.ChildProcess.delete(uuid);
+      this.streamMap.delete(uuid);
+      return this.sendmessage(JSON.stringify(msg));
+    }
     
     startplayback = (id, playtime, uuid) => {
+      checkStream(uuid);
+      this.streamMap.set(uuid, "vod");
+      this.startMJPEG(uuid);
       const type = "LINK_MI_CMD_PLAY_BACK_CMD";
       const msg = {"type":type,"MiplayBackCmd":{"strId":id,"nPlaytime":playtime,"struuid":uuid}};
       return this.sendmessage(JSON.stringify(msg));
@@ -138,7 +235,12 @@ class Playback {
       const msg = {"type":type,"MiplayStopCmd":{"struuid":uuid}};
       this.ChildProcess.get(uuid).kill();
       this.ChildProcess.delete(uuid);
+      this.streamMap.delete(uuid);
       return this.sendmessage(JSON.stringify(msg));
+    }
+
+    streamstop = (uuid) => {
+      checkStream(uuid);
     }
     
     pauseplayback = (uuid) => {
@@ -179,4 +281,4 @@ class Playback {
     
 }
 
-module.exports = Playback;
+module.exports = VicStream;
