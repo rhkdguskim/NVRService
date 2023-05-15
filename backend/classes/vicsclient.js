@@ -40,13 +40,18 @@ class VicsClient {
         {
           case 'LINK_CMD_ADD_CAM_RESP' :
           {
-            return this.processaddcamResp();
+            return this.processaddcamResp(cmd);
             break;
+          }
+
+          case 'LINK_CMD_CAM_LIST_RESP' :
+          {
+            return this.processcamlistresp(cmd);
           }
 
           case 'LINK_CMD_DEL_CAM_RESP' :
           {
-            return this.processdelcamresp();
+            return this.processdelcamresp(cmd);
             break;
           }
           
@@ -65,6 +70,33 @@ class VicsClient {
           case 'LINK_CMD_HAS_RECORD_RESP':
           {
               return this.processhasrecordresp(cmd);
+              break;
+          }
+
+          case 'LINK_CMD_CAM_ONLINE_NOTIFY':
+          {
+            if(cmd.camIdNotify.strId)
+              this.Emitter.emit('camonline', cmd.camIdNotify.strId);
+          }
+
+          case 'LINK_CMD_CAM_OFFLINE_NOTIFY':
+          {
+            if(cmd.camIdNotify.strId)
+              this.Emitter.emit('camoffline', cmd.camIdNotify.strId);
+              break;
+          }
+
+          case 'LINK_CMD_CAM_REC_ON_NOTIFY':
+          {
+            if(cmd.camIdNotify.strId)
+              this.Emitter.emit('camrecon', cmd.camIdNotify.strId);
+              break;
+          }
+
+          case 'LINK_CMD_CAM_REC_OFF_NOTIFY':
+          {
+            if(cmd.camIdNotify.strId)
+              this.Emitter.emit('camrecoff', cmd.camIdNotify.strId);
               break;
           }
       
@@ -101,18 +133,34 @@ class VicsClient {
 
     searchhasrec = (id, HasRec) => {
       const cmd = "LINK_CMD_HAS_RECORD_REQ";
-      const msg = {"type":"LINK_CMD_HAS_RECORD_REQ",
+      const msg = {"type":cmd,
       "hasRecReq":{"strId":id,
       "cList":{"cHasRec":HasRec}}}
       this.sendmessage(JSON.stringify(msg));
     }
 
-    addcamera = (camera) => {
+    getCameraList = () => {
+      const cmd = "LINK_CMD_CAM_LIST_REQ";
+      const msg = {"type":cmd, "camListReq":{"bAll":true}};
+      this.sendmessage(JSON.stringify(msg));
+    }
 
+    getcameracallback = () =>{
+      const cmd = "LINK_CMD_REG_NOTIFY_REQ";
+      const msg = {"type":cmd, "regNotifyReq":{}};
+      this.sendmessage(JSON.stringify(msg));
+    }
+
+    addcamera = (camera) => {
+      const cmd = "LINK_CMD_ADD_CAM_REQ";
+      const msg =  {"type":cmd,"addCamReq":{"cCam":{"strId":camera.id,"strName":camera.name,"nType":"VID_ONVIF_S","strIP":camera.ip,"strPort":camera.port,"strUser":camera.username,"strPasswd":camera.userpassword,"strONVIFAddress":"/onvif/device_service","strRTSPUrl":"rtsp://110.110.10.0:554/Streami","nConnectType":"VID_CONNECT_TCP","cRecSched":["44241a90-8927-4907-a3d1-f32f29c2266e"],"strSched":"\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002\u0002"}}}
+      this.sendmessage(JSON.stringify(msg));
     }
 
     delcamera = (id) => {
-
+      const cmd = "LINK_CMD_DEL_CAM_REQ";
+      const msg = {"type":cmd,"delCamReq":{"strId":id}}
+      this.sendmessage(JSON.stringify(msg));
     }
 
     processloginresp = (cmd, user, password) => {
@@ -123,7 +171,10 @@ class VicsClient {
       if (cmd.loginResp.bRet === true) {
         this.logined = true;
         this.logintry = 0;
+        this.getCameraList();
+        this.getcameracallback();
       }
+    }
 
     processsearchrecordresp = (cmd) => {
       if(cmd.searchRecResp.cList.cList)
@@ -139,16 +190,21 @@ class VicsClient {
         this.Emitter.emit('monthrec', []);    
     }
 
-    processaddcamResp = (cmd) => {
+    processcamlistresp = (cmd) => {
+    if(cmd.camListResp.cList)
+      this.Emitter.emit('cameralist', cmd.camListResp.cList);
+    else
+      this.Emitter.emit('cameralist', []);    
+    }
 
+    processaddcamResp = (cmd) => {
+      console.log(cmd)
     }
 
     processdelcamresp = (cmd) => {
-
+      console.log(cmd)
     }
 
   }
-    
-}
 
 module.exports = VicsClient;

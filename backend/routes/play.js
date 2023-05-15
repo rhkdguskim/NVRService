@@ -14,6 +14,32 @@ const uuid = uuidv4();
 vicsstreamws.startserver();
 vicsclientws.startserver();
 
+vicsclientws.Emitter.on('cameralist', (data) => {
+    //console.log(data.cVidCamera);
+
+    data.cVidCamera.map((item) => {
+        if(item.bOnline)
+            console.log(item.strId);
+    })
+});
+
+vicsclientws.Emitter.on('camonline', (data) => {
+    console.log(data);
+});
+
+vicsclientws.Emitter.on('camoffline', (data) => {
+    console.log(data);
+});
+
+vicsclientws.Emitter.on('camrecon', (data) => {
+    console.log(data);
+});
+
+vicsclientws.Emitter.on('camrecoff', (data) => {
+    console.log(data);
+});
+
+
 router.ws('/playback/:uuid', (ws, req) => {
     if(!vicsstreamws.connected)
         vicsstreamws.startserver();
