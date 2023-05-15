@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 const RecBar = ({ camid, date }) => {
 
   async function fetchRecData() {
-    console.log(date);
-    const body = {camid:camid, year:date.year, month:date.month, day:date.day}
-    const response = await fetch("/playback/rec/", {
+    const myDate = date | {year:2023, month:11, day:5};
+    const body = {camid:camid, myDate}
+    const response = await fetch("/play/rec/", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

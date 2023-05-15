@@ -1,20 +1,20 @@
 var express = require("express");
 const expressWs = require("express-ws");
 const VicStream = require("../classes/vicsstream");
-const VicsClient = require("../classes/vicsclient");
+const VicsLink = require("../classes/vicslink");
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 
 expressWs(router);
 
-const vicsstreamws = new VicStream("admin","admin");
-const vicsclientws = new VicsClient("admin", "admin");
+const vicsstreamws = new VicStream("127.0.0.1", "9080","admin","admin");
+const vicslinkws = new VicsLink("127.0.0.1", "9080","admin", "admin");
 const uuid = uuidv4();
 
-vicsstreamws.startserver();
-vicsclientws.startserver();
+vicsstreamws.connect();
+vicslinkws.connect();
 
-vicsclientws.Emitter.on('cameralist', (data) => {
+vicslinkws.Emitter.on('cameralist', (data) => {
     //console.log(data.cVidCamera);
 
     data.cVidCamera.map((item) => {
@@ -23,87 +23,48 @@ vicsclientws.Emitter.on('cameralist', (data) => {
     })
 });
 
-vicsclientws.Emitter.on('camonline', (data) => {
+vicslinkws.Emitter.on('camonline', (data) => {
     console.log(data);
 });
 
-vicsclientws.Emitter.on('camoffline', (data) => {
+vicslinkws.Emitter.on('camoffline', (data) => {
     console.log(data);
 });
 
-vicsclientws.Emitter.on('camrecon', (data) => {
+vicslinkws.Emitter.on('camrecon', (data) => {
     console.log(data);
 });
 
-vicsclientws.Emitter.on('camrecoff', (data) => {
+vicslinkws.Emitter.on('camrecoff', (data) => {
     console.log(data);
 });
 
+router.ws('/play/:isvod/:uuid/', (ws, req) => {
+    const uuid = req.params.uuid;
 
-router.ws('/playback/:uuid', (ws, req) => {
     if(!vicsstreamws.connected)
-        vicsstreamws.startserver();
+        vicsstreamws.connect();
     else
         ws.close();
-    
-    vicsstreamws.Emitter.on(`play/${req.params.uuid}`, (data) => {
-        ws.send(data.data);
-    });
+
+    const stream = vicsstreamws.createStreamMap(uuid);
+
+    stream.on("data", (data) => {
+        ws.send(data);
+    })
 
     ws.on("message ", (data) => {
         
     })
 
     ws.on('close', () => {
-        vicsstreamws.streamstop(uuid);
-    });
-});
-
-router.ws('/mainstream/:uuid', (ws, req) => {
-    if(!vicsstreamws.connected)
-        vicsstreamws.startserver();
-    else
-        ws.close();
-    
-    const stream = vicsstreamws.Addlive(req.params.uuid);
-
-    stream.on('data', (data) => {
-        ws.send(data.data);
-    });
-
-    ws.on("message ", (data) => {
-        
-    })
-
-    ws.on('close', () => {
-        vicsstreamws.DelLive(uuid);
-    });
-});
-
-router.ws('/substream/:uuid', (ws, req) => {
-    if(!vicsstreamws.connected)
-        vicsstreamws.startserver();
-    else
-        ws.close();
-    
-    const stream = vicsstreamws.Addlive(req.params.uuid);
-
-    stream.on('data', (data) => {
-        ws.send(data.data);
-    });
-
-    ws.on("message ", (data) => {
-        
-    })
-
-    ws.on('close', () => {
-        vicsstreamws.DelLive(uuid);
+        vicsstreamws.deleteStreamMap(uuid);
     });
 });
 
 router.ws('/timestamp/:uuid', (ws, req) => {
     if(!vicsstreamws.connected)
-        vicsstreamws.startserver();
+        vicsstreamws.connect();
     else
         ws.close();
     
@@ -115,6 +76,16 @@ router.ws('/timestamp/:uuid', (ws, req) => {
         
     })
 });
+
+router.get('startlive/:id/:stream/:uuid', (req, res) => {
+    vicsstreamws.startlive(req.params.id, req.params.stream, req.params.uuid);
+    res.status(201).json({result:true});
+})
+
+router.get('stoplive/:id/:stream/:uuid', (req, res) => {
+    vicsstreamws.stoplive(req.params.uuid);
+    res.status(201).json({result:true});
+})
 
 router.post('/playback/:id/:playtime/:uuid', (req, res) => {
     vicsstreamws.startplayback(req.params.id, req.params.playtime, req.params.uuid);
@@ -141,13 +112,12 @@ router.post('/speed/:uuid/:speed', (req, res) => {
     res.status(201).json({result:true});
 });
 
-
 const CheckWebSocket = (req, res, next) => {
     if(!vicsstreamws.connected)
-        vicsstreamws.startserver();
+        vicsstreamws.connect();
 
-    if(!vicsclientws.connected)
-        vicsclientws.startserver();
+    if(!vicslinkws.connected)
+        vicslinkws.connect();
 
     next();
 }
@@ -173,16 +143,16 @@ const recMonth = (req, res, next) => {
             recmap.push({"nId":`${numString}`,"nStart":newdate,"nEnd":newdate+86399,"nType":673197088})
         }
 
-        vicsclientws.searchhasrec(id, recmap);
+        vicslinkws.searchhasrec(id, recmap);
 
         const monthRecHandler = (data) => {
             res.status(201).json(data);
             res.end();
-            vicsclientws.Emitter.off('monthrec', monthRecHandler); // 이벤트 리스너 제거
+            vicslinkws.Emitter.off('monthrec', monthRecHandler); // 이벤트 리스너 제거
         }
         // playback 리스트 전달.
 
-        vicsclientws.Emitter.on('monthrec', monthRecHandler);
+        vicslinkws.Emitter.on('monthrec', monthRecHandler);
     }
     else {
         next();
@@ -198,15 +168,15 @@ router.post('/rec', CheckWebSocket, recMonth, (req, res) => {
     const date = new Date(year, month-1, day, 0, 0, 0);
     const newdate = Math.floor(date.getTime() / 1000); // UNIX Timestamp
     // playback 리스트 전달.
-    vicsclientws.searchrec(id, newdate, newdate + 86399);
+    vicslinkws.searchrec(id, newdate, newdate + 86399);
 
     const dayRecHandler = (data) => {
         res.status(201).json(data);
         res.end();
-        vicsclientws.Emitter.off('dayrec', dayRecHandler); // 이벤트 리스너 제거
+        vicslinkws.Emitter.off('dayrec', dayRecHandler); // 이벤트 리스너 제거
     };
 
-    vicsclientws.Emitter.on('dayrec', dayRecHandler);
+    vicslinkws.Emitter.on('dayrec', dayRecHandler);
 })
 
 module.exports = router;
