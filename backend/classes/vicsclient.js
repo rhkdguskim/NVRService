@@ -39,8 +39,11 @@ class VicsClient {
 
       // 메시지를 받았을 때
       this.ws.onmessage = (event) => {
-        const cmd = JSON.parse(event.data);
-        switch (cmd.type)
+
+        try{
+          const cmd = JSON.parse(event.data);
+
+          switch (cmd.type)
         { 
           case 'LINK_CMD_LOGIN_RESP':
           {
@@ -50,11 +53,14 @@ class VicsClient {
       
           default:
           {
-            this.callbackfunc(cmd);
-             break;
+            break;
           }
                
         };
+        } catch (err) {
+          this.callbackfunc(event.data);
+        }
+        
       };
       
 
@@ -90,7 +96,9 @@ class VicsClient {
       if (cmd.loginResp.bRet === true) {
         this.logined = true;
         this.logintry = 0;
-        this.processlogin();
+        
+        if(this.processlogin)
+          this.processlogin();
       }
     }
 

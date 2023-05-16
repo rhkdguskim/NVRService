@@ -15,8 +15,6 @@ vicsstreamws.connect();
 vicslinkws.connect();
 
 vicslinkws.Emitter.on('cameralist', (data) => {
-    //console.log(data.cVidCamera);
-
     data.cVidCamera.map((item) => {
         if(item.bOnline)
             console.log(item.strId);
@@ -76,6 +74,24 @@ router.ws('/timestamp/:uuid', (ws, req) => {
         
     })
 });
+
+router.get('/:id/:stream/:uuid', (req, res) => {
+
+    res.writeHead(200, { // video/mp4
+        'Content-Type': 'video/mp4', 
+        'Transfer-Encoding': 'chunked',
+        'Connection': 'keep-alive',
+        });
+
+    vicsstreamws.startlive(req.params.id, req.params.stream, req.params.uuid);
+
+    const stream = vicsstreamws.createStreamMap(req.params.uuid);
+    //res.pipe(stream);
+    stream.on("data", (data) => {
+        res.write(data);
+    })
+    //res.status(201).json({result:true});
+})
 
 router.get('startlive/:id/:stream/:uuid', (req, res) => {
     vicsstreamws.startlive(req.params.id, req.params.stream, req.params.uuid);

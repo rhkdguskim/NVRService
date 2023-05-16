@@ -1,5 +1,10 @@
 const VicsClient = require('./vicsclient');
 const { PassThrough } = require('stream');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpeg_static = require('ffmpeg-static');
+const { spawn } = require('child_process');
+
+ffmpeg.setFfmpegPath(ffmpeg_static);
 
 class VicStream extends VicsClient {
       constructor(ip, port, username, password) {
@@ -31,6 +36,29 @@ class VicStream extends VicsClient {
           };
           const videodata = message.slice(61);
 
+          if(!this.cmd) {
+            console.log("Onle One");
+            this.cmd = ffmpeg()
+            .input(this.streamMap.get(frameHeader.UUID).stream)
+            .on('start', function(err) {
+              console.log('stared: ' + err.message);
+            })
+            .on('error', function(err) {
+              console.log('An error occurred: ' + err.message);
+            })
+            .on('end', function() {
+              console.log('Processing finished !');
+            });
+  
+            this.cmd.ffprobe(0, function(err, data) {
+              if (err) {
+                console.log('Error occurred during ffprobe: ' + err.message);
+              } else {
+                console.log(data);
+              }
+            });
+          }
+
           this.timestamp(frameHeader.UUID, frameHeader.secs);
           if(this.streamMap.has(frameHeader.UUID)) {
             this.streamMap.get(frameHeader.UUID).stream.write(videodata);
@@ -54,13 +82,13 @@ class VicStream extends VicsClient {
     }
 
     startlive = (id, stream, uuid) => {
-      const type = "LINK_MI_CMD_STOP_LIVE_CMD";
+      const type = "LINK_MI_CMD_START_LIVE_CMD";
       const msg = {"type":type,"MistartLiveCmd":{"strId":id,"nStream":stream,"struuid":uuid}};
       return this.sendmessage(JSON.stringify(msg));
     }
 
     stoplive = (uuid) => {
-      const type = "LINK_MI_CMD_PLAY_BACK_CMD";
+      const type = "LINK_MI_CMD_STOP_LIVE_CMD";
       const msg = {"type":type,"MistopLiveCmd":{"struuid":uuid}};
       return this.sendmessage(JSON.stringify(msg));
     }
