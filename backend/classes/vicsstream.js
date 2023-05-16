@@ -35,7 +35,6 @@ class VicStream extends VicsClient {
             UUID: message.slice(24, 60).toString(),
           };
           const videodata = message.slice(61);
-
           if(!this.cmd) {
             console.log("Onle One");
             this.cmd = ffmpeg()
@@ -48,7 +47,7 @@ class VicStream extends VicsClient {
             })
             .on('end', function() {
               console.log('Processing finished !');
-            });
+            })
   
             this.cmd.ffprobe(0, function(err, data) {
               if (err) {
