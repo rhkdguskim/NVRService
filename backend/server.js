@@ -78,7 +78,7 @@ app.use((req, res, next) => {
 
 app.use("/user", user);
 app.use("/camera", requireLogin, camera);
-app.use("/play", requireLogin, play);
+app.use("/play", play);
 app.use("/videos", requireLogin, videos);
 app.use("/onvif", requireLogin, onvif);
 app.use("/system", requireLogin, system);

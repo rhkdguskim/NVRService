@@ -42,7 +42,6 @@ class VicsClient {
 
         try{
           const cmd = JSON.parse(event.data);
-
           switch (cmd.type)
         { 
           case 'LINK_CMD_LOGIN_RESP':
@@ -53,14 +52,15 @@ class VicsClient {
       
           default:
           {
+            this.callbackfunc(event.data);
             break;
           }
                
         };
         } catch (err) {
           this.callbackfunc(event.data);
+        } finally {
         }
-        
       };
       
 

@@ -6,14 +6,19 @@ class VicsLink extends VicsClient {
         super(ip, port, username, password, "linkproto")
         super.callbackfunc = this.callbackMessage;
         super.processlogin = this.callbackprocesslogin;
+
+        this.CameraList = new Map();
+        this.SearchedCamera = new Map();
     }
 
     callbackprocesslogin = () => {
       this.getCameraList();
       this.getcameracallback();
+      this.SearchStart();
     }
     
-    callbackMessage = (cmd) => {
+    callbackMessage = (data) => {
+      const cmd = JSON.parse(data);
         switch (cmd.type)
         {
           case 'LINK_CMD_ADD_CAM_RESP' :
@@ -51,30 +56,70 @@ class VicsLink extends VicsClient {
               break;
           }
 
+          case 'LINK_CMD_CAM_ADD_NOTIFY' :
+          {
+            return this.processcamaddnotify(cmd);
+             break;
+          }
+
+          case 'LINK_CMD_CAM_DEL_NOTIFY' :
+          {
+            return this.processcamdelnotify(cmd);
+            break;
+          }
+
+          case 'LINK_CMD_CAM_SEARCHED_NOTIFY' :
+          {
+            return this.processcamsearchdnotify(cmd);
+          }
+
           case 'LINK_CMD_CAM_ONLINE_NOTIFY':
           {
             if(cmd.camIdNotify.strId)
-              this.Emitter.emit('camonline', cmd.camIdNotify.strId);
+            {
+              const cameraData = this.CameraList.get(cmd.camIdNotify.strId);
+              cameraData.bOnline = true;
+              this.CameraList.set(cmd.camIdNotify.strId, cameraData);
+              return this.Emitter.emit('camonline', cmd.camIdNotify.strId);
+              
+            }
+            break;
           }
 
           case 'LINK_CMD_CAM_OFFLINE_NOTIFY':
           {
             if(cmd.camIdNotify.strId)
-              this.Emitter.emit('camoffline', cmd.camIdNotify.strId);
+            {
+              const cameraData = this.CameraList.get(cmd.camIdNotify.strId);
+              cameraData.bOnline = false;
+              this.CameraList.set(cmd.camIdNotify.strId, cameraData);
+              return this.Emitter.emit('camoffline', cmd.camIdNotify.strId);
+            }
               break;
           }
 
           case 'LINK_CMD_CAM_REC_ON_NOTIFY':
           {
             if(cmd.camIdNotify.strId)
+            {
+              const cameraData = this.CameraList.get(cmd.camIdNotify.strId);
+              cameraData.bRec = true;
+              this.CameraList.set(cmd.camIdNotify.strId, cameraData);
               this.Emitter.emit('camrecon', cmd.camIdNotify.strId);
+            }
               break;
           }
 
           case 'LINK_CMD_CAM_REC_OFF_NOTIFY':
           {
             if(cmd.camIdNotify.strId)
+            {
+              const cameraData = this.CameraList.get(cmd.camIdNotify.strId);
+              cameraData.bRec = false;
+              this.CameraList.set(cmd.camIdNotify.strId, cameraData);
               this.Emitter.emit('camrecoff', cmd.camIdNotify.strId);
+            }
+              
               break;
           }
       
@@ -121,6 +166,18 @@ class VicsLink extends VicsClient {
       this.sendmessage(JSON.stringify(msg));
     }
 
+    SearchStart = () => {
+      const cmd = "LINK_CMD_CAM_SEARCH_START_REQ";
+      const msg = {"type":cmd,"camSearchStartReq":{}}
+      this.sendmessage(JSON.stringify(msg));
+    }
+
+    Ptz = (camid, action, speed) => {
+      const cmd = "LINK_CMD_PTZ_CMD";
+      const msg = {"type":cmd,"ptzCmd":{"strId":camid,"nAction":action,"nParam":speed}}
+      this.sendmessage(JSON.stringify(msg));
+    }
+
     processsearchrecordresp = (cmd) => {
       if(cmd.searchRecResp.cList.cList)
         this.Emitter.emit('dayrec', cmd.searchRecResp.cList.cList);
@@ -136,20 +193,38 @@ class VicsLink extends VicsClient {
     }
 
     processcamlistresp = (cmd) => {
-    if(cmd.camListResp.cList)
+    if(cmd.camListResp.cList) {
       this.Emitter.emit('cameralist', cmd.camListResp.cList);
-    else
+      cmd.camListResp.cList.cVidCamera.map((item) => {
+        this.CameraList.set(item.strId, item);
+      })
+
+    }
+    else {
       this.Emitter.emit('cameralist', []);    
+    }
+      
     }
 
     processaddcamResp = (cmd) => {
-      console.log(cmd)
+      console.log("Add", cmd);
     }
 
     processdelcamresp = (cmd) => {
-      console.log(cmd)
+      console.log("Delete", cmd);
+    }
+    processcamaddnotify = (cmd) => {
+      const cam = cmd.camAddNotify.cCam;
+      this.CameraList.set(cam.strId, cam);
     }
 
+    processcamdelnotify = (cmd) => {
+      this.CameraList.delete(cmd.camIdNotify.strId);
+    }
+
+    processcamsearchdnotify = (cmd) => {
+      this.SearchedCamera.set(cmd.camSearchedNotify.strIp, cmd.camSearchedNotify)
+    }
 
 }
 

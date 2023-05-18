@@ -10,7 +10,10 @@ class VicStream extends VicsClient {
       constructor(ip, port, username, password) {
         super(ip, port, username, password, "MilinkUserstream")
         super.callbackfunc = this.callbackMessage;
-        this.streamMap = new Map();
+        this.vodStreamMap = new Map();
+        this.LiveMainCameraMap = new Map();
+        this.LiveSubCameraMap = new Map();
+        this.LiveCameraBufData = new Map();
     }
 
     timestamp = (uuid, sec) => {
@@ -35,61 +38,69 @@ class VicStream extends VicsClient {
             UUID: message.slice(24, 60).toString(),
           };
           const videodata = message.slice(61);
-          if(!this.cmd) {
-            console.log("Onle One");
-            this.cmd = ffmpeg()
-            .input(this.streamMap.get(frameHeader.UUID).stream)
-            .on('start', function(err) {
-              console.log('stared: ' + err.message);
-            })
-            .on('error', function(err) {
-              console.log('An error occurred: ' + err.message);
-            })
-            .on('end', function() {
-              console.log('Processing finished !');
-            })
-  
-            this.cmd.ffprobe(0, function(err, data) {
-              if (err) {
-                console.log('Error occurred during ffprobe: ' + err.message);
-              } else {
-                console.log(data);
-              }
-            });
+          //timestamp callback
+          this.timestamp(frameHeader.UUID, frameHeader.secs);
+          //livecallback
+          if(this.LiveMainCameraMap.has(frameHeader.UUID)) {
+            this.LiveMainCameraMap.get(frameHeader.UUID).write(videodata);
+            return;
           }
 
-          this.timestamp(frameHeader.UUID, frameHeader.secs);
-          if(this.streamMap.has(frameHeader.UUID)) {
-            this.streamMap.get(frameHeader.UUID).stream.write(videodata);
+          if(this.LiveSubCameraMap.has(frameHeader.UUID)) {
+            this.LiveSubCameraMap.get(frameHeader.UUID).write(videodata);
+            return;
+          }
+
+          //vod callback
+          if(this.vodStreamMap.has(frameHeader.UUID)) {
+            this.vodStreamMap.get(frameHeader.UUID).write(videodata);
+            return;
           }
         }
     }
 
-    createStreamMap = (uuid, isvod) => {
+    createVodStreamMap = (uuid) => {
       const stream = new PassThrough()
-
-      if(isvod)
-        this.streamMap.set(uuid, {type:"vod", stream: stream});
-      else
-        this.streamMap.set(uuid, {type:"live", stream: stream});
-      
+      this.vodStreamMap.set(uuid, stream);
       return stream;
     }
 
-    deleteStreamMap = (uuid) => {
-      this.streamMap.delete(uuid);
+    deleteVodStreamMap = (uuid) => {
+      this.vodStreamMap.delete(uuid);
     }
 
-    startlive = (id, stream, uuid) => {
-      const type = "LINK_MI_CMD_START_LIVE_CMD";
-      const msg = {"type":type,"MistartLiveCmd":{"strId":id,"nStream":stream,"struuid":uuid}};
-      return this.sendmessage(JSON.stringify(msg));
+
+    startlive = (id, streamnum) => {
+      const stream = new PassThrough()
+      if(streamnum === 1) { // Main
+        this.LiveMainCameraMap.set(id, stream);
+        const type = "LINK_MI_CMD_START_LIVE_CMD";
+        const msg = {"type":type,"MistartLiveCmd":{"strId":id,"nStream":streamnum,"struuid":id}};
+        return this.sendmessage(JSON.stringify(msg));
+      }
+      else{ // Sub
+        this.LiveSubCameraMap.set(id, stream);
+        const type = "LINK_MI_CMD_START_LIVE_CMD";
+        const msg = {"type":type,"MistartLiveCmd":{"strId":id,"nStream":streamnum,"struuid":id}};
+        return this.sendmessage(JSON.stringify(msg));
+      }
+
     }
 
-    stoplive = (uuid) => {
-      const type = "LINK_MI_CMD_STOP_LIVE_CMD";
-      const msg = {"type":type,"MistopLiveCmd":{"struuid":uuid}};
-      return this.sendmessage(JSON.stringify(msg));
+    stoplive = (id, streamnum) => {
+      if(streamnum === 1) {
+        this.LiveMainCameraMap.delete(id);
+        const type = "LINK_MI_CMD_STOP_LIVE_CMD";
+        const msg = {"type":type,"MistopLiveCmd":{"struuid":id},"nStream":streamnum};
+        return this.sendmessage(JSON.stringify(msg));
+      }
+      else {
+        this.LiveMainCameraMap.delete(id);
+        const type = "LINK_MI_CMD_STOP_LIVE_CMD";
+        const msg = {"type":type,"MistopLiveCmd":{"struuid":id},"nStream":streamnum};
+        return this.sendmessage(JSON.stringify(msg));
+      }
+
     }
     
     startplayback = (id, playtime, uuid) => {

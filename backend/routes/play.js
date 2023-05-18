@@ -3,41 +3,77 @@ const expressWs = require("express-ws");
 const VicStream = require("../classes/vicsstream");
 const VicsLink = require("../classes/vicslink");
 const router = express.Router();
-const { v4: uuidv4 } = require('uuid');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpeg_static = require('ffmpeg-static');
 
+ffmpeg.setFfmpegPath(ffmpeg_static);
 expressWs(router);
 
 const vicsstreamws = new VicStream("127.0.0.1", "9080","admin","admin");
 const vicslinkws = new VicsLink("127.0.0.1", "9080","admin", "admin");
-const uuid = uuidv4();
 
 vicsstreamws.connect();
 vicslinkws.connect();
 
 vicslinkws.Emitter.on('cameralist', (data) => {
+    
     data.cVidCamera.map((item) => {
+        //vicsstreamws.startlive(item.strId, 2, item.strId);
         if(item.bOnline)
+        {
             console.log(item.strId);
+            vicsstreamws.startlive(item.strId, 1, item.strId)
+            vicsstreamws.startlive(item.strId, 2, item.strId)
+        }
     })
 });
-
 vicslinkws.Emitter.on('camonline', (data) => {
-    console.log(data);
+    console.log("camonline ",data);
+    vicsstreamws.startlive(data, 1, data)
+    vicsstreamws.startlive(data, 2, data)
 });
 
 vicslinkws.Emitter.on('camoffline', (data) => {
-    console.log(data);
-});
-
-vicslinkws.Emitter.on('camrecon', (data) => {
-    console.log(data);
+    console.log("camoffline ",data);
+    vicsstreamws.stoplive(data, 1)
+    vicsstreamws.stoplive(data, 2)
 });
 
 vicslinkws.Emitter.on('camrecoff', (data) => {
-    console.log(data);
+    console.log("camrecoff ",data);
 });
 
-router.ws('/play/:isvod/:uuid/', (ws, req) => {
+
+vicslinkws.Emitter.on('camrecon', (data) => {
+    console.log("camrecon ",data);
+});
+
+
+
+router.ws('/live/:camid/', (ws, req) => {
+    const camid = req.params.camid;
+
+    if(!vicsstreamws.connected)
+        vicsstreamws.connect();
+    else
+        ws.close();
+
+    const mainstream = vicsstreamws.vodStreamMap.get(frameHeader.UUID).stream;
+
+    mainstream.on("data", (data) => {
+        ws.send(data);
+    })
+
+    ws.on("message ", (data) => {
+        
+    })
+
+    ws.on('close', () => {
+        
+    });
+});
+
+router.ws('/play/:uuid/', (ws, req) => {
     const uuid = req.params.uuid;
 
     if(!vicsstreamws.connected)
@@ -45,7 +81,7 @@ router.ws('/play/:isvod/:uuid/', (ws, req) => {
     else
         ws.close();
 
-    const stream = vicsstreamws.createStreamMap(uuid);
+    const stream = vicsstreamws.createVodStreamMap(uuid);
 
     stream.on("data", (data) => {
         ws.send(data);
@@ -56,7 +92,7 @@ router.ws('/play/:isvod/:uuid/', (ws, req) => {
     })
 
     ws.on('close', () => {
-        vicsstreamws.deleteStreamMap(uuid);
+        vicsstreamws.deleteVodStreamMap(uuid);
     });
 });
 
@@ -74,24 +110,6 @@ router.ws('/timestamp/:uuid', (ws, req) => {
         
     })
 });
-
-router.get('/:id/:stream/:uuid', (req, res) => {
-
-    res.writeHead(200, { // video/mp4
-        'Content-Type': 'video/mp4', 
-        'Transfer-Encoding': 'chunked',
-        'Connection': 'keep-alive',
-        });
-
-    vicsstreamws.startlive(req.params.id, req.params.stream, req.params.uuid);
-
-    const stream = vicsstreamws.createStreamMap(req.params.uuid);
-    //res.pipe(stream);
-    stream.on("data", (data) => {
-        res.write(data);
-    })
-    //res.status(201).json({result:true});
-})
 
 router.get('startlive/:id/:stream/:uuid', (req, res) => {
     vicsstreamws.startlive(req.params.id, req.params.stream, req.params.uuid);
@@ -126,6 +144,46 @@ router.post('/seek/:uuid/:playtime', (req, res) => {
 router.post('/speed/:uuid/:speed', (req, res) => {
     vicsstreamws.speed(req.params.uuid, req.params.speed);
     res.status(201).json({result:true});
+});
+
+router.post('/ptz/:', (req, res) => {
+    const camid = req.body.camid;
+    const action = req.body.action;
+    const speed = req.body.speed;
+
+    vicsstreamws.Ptz(camid, action, speed);
+    res.status(201).json({result:true});
+});
+
+router.post('/capture/', (req, res) => {
+    const camid = req.body.camid;
+    const height = req.body.height || 1980;
+    const width = req.body.width || 1080;
+
+    if(vicsstreamws.LiveMainCameraMap.has(camid)) {
+        const mainstream = vicsstreamws.LiveMainCameraMap.get(camid);
+
+        res.setHeader('Content-Type', 'image/jpeg');
+    
+        ffmpeg()
+        .input(mainstream)
+        .outputFormat('image2pipe')
+        .outputOptions('-preset', 'ultrafast')
+        .outputOptions('-pix_fmt', 'yuv420p')
+        .outputOptions('-s', `${height}x${width}`)
+        .frames(1)
+        .outputOptions('-threads', '4')
+        .on('end', () => {
+        })  
+        .on('error', (err) => {
+          console.error('Error converting frame:', err);
+          res.sendStatus(500); // Send an error response if conversion fails
+        })
+        .pipe(res)
+    }
+    else {
+        res.sendStatus(500); // Send an error response if conversion fails
+    }
 });
 
 const CheckWebSocket = (req, res, next) => {
