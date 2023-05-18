@@ -146,7 +146,7 @@ router.post('/speed/:uuid/:speed', (req, res) => {
     res.status(201).json({result:true});
 });
 
-router.post('/ptz/:', (req, res) => {
+router.post('/ptz/', (req, res) => {
     const camid = req.body.camid;
     const action = req.body.action;
     const speed = req.body.speed;
@@ -160,19 +160,21 @@ router.post('/capture/', (req, res) => {
     const height = req.body.height || 1980;
     const width = req.body.width || 1080;
 
-    if(vicsstreamws.LiveSubCameraMap.has(camid)) {
-        const mainstream = vicsstreamws.LiveSubCameraMap.get(camid);
+    if(vicsstreamws.LiveCameraBufData.has(camid)) {
+        const mainstream = vicsstreamws.LiveCameraBufData.get(camid);
 
         res.setHeader('Content-Type', 'image/jpeg');
     
-        ffmpeg()
-        .input(mainstream)
+        ffmpeg(mainstream)
+        .inputFormat('h264')
         .outputFormat('image2pipe')
+        .outputOptions('-vf', "select='eq(pict_type,PICT_TYPE_I)'")
+        .outputOptions('-vsync', 'vfr')
         .outputOptions('-preset', 'ultrafast')
         .outputOptions('-pix_fmt', 'yuv420p')
         .outputOptions('-s', `${height}x${width}`)
         .frames(1)
-        .outputOptions('-threads', '3')
+        .outputOptions('-threads', '8')
         .on('end', () => {
         })  
         .on('error', (err) => {

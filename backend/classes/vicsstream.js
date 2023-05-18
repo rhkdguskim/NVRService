@@ -3,6 +3,7 @@ const { PassThrough } = require('stream');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpeg_static = require('ffmpeg-static');
 const { spawn } = require('child_process');
+const streamifier = require('streamifier');
 
 ffmpeg.setFfmpegPath(ffmpeg_static);
 
@@ -42,13 +43,15 @@ class VicStream extends VicsClient {
           this.timestamp(frameHeader.UUID, frameHeader.secs);
           //livecallback
           if(this.LiveMainCameraMap.has(frameHeader.UUID)) {
+
+            if(frameHeader.frameType === 1)
+              this.LiveCameraBufData.set(frameHeader.UUID, streamifier.createReadStream(videodata));
             
             this.LiveMainCameraMap.get(frameHeader.UUID).write(videodata);
             return;
           }
 
           if(this.LiveSubCameraMap.has(frameHeader.UUID)) {
-            this.LiveCameraBufData.set(frameHeader.UUID, videodata);
             this.LiveSubCameraMap.get(frameHeader.UUID).write(videodata);
             return;
           }
