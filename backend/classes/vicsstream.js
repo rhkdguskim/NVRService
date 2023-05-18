@@ -42,11 +42,13 @@ class VicStream extends VicsClient {
           this.timestamp(frameHeader.UUID, frameHeader.secs);
           //livecallback
           if(this.LiveMainCameraMap.has(frameHeader.UUID)) {
+            
             this.LiveMainCameraMap.get(frameHeader.UUID).write(videodata);
             return;
           }
 
           if(this.LiveSubCameraMap.has(frameHeader.UUID)) {
+            this.LiveCameraBufData.set(frameHeader.UUID, videodata);
             this.LiveSubCameraMap.get(frameHeader.UUID).write(videodata);
             return;
           }
@@ -60,7 +62,8 @@ class VicStream extends VicsClient {
     }
 
     createVodStreamMap = (uuid) => {
-      const stream = new PassThrough()
+      const stream = new PassThrough({ highWaterMark: 30000 })
+      stream.setMaxListeners(20);
       this.vodStreamMap.set(uuid, stream);
       return stream;
     }
@@ -71,7 +74,8 @@ class VicStream extends VicsClient {
 
 
     startlive = (id, streamnum) => {
-      const stream = new PassThrough()
+      const stream = new PassThrough({ highWaterMark: 30000 })
+      stream.setMaxListeners(20);
       if(streamnum === 1) { // Main
         this.LiveMainCameraMap.set(id, stream);
         const type = "LINK_MI_CMD_START_LIVE_CMD";

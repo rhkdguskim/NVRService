@@ -9,8 +9,8 @@ const ffmpeg_static = require('ffmpeg-static');
 ffmpeg.setFfmpegPath(ffmpeg_static);
 expressWs(router);
 
-const vicsstreamws = new VicStream("127.0.0.1", "9080","admin","admin");
-const vicslinkws = new VicsLink("127.0.0.1", "9080","admin", "admin");
+const vicsstreamws = new VicStream("110.110.10.102", "9080","admin","admin");
+const vicslinkws = new VicsLink("110.110.10.102", "9080","admin", "admin");
 
 vicsstreamws.connect();
 vicslinkws.connect();
@@ -160,8 +160,8 @@ router.post('/capture/', (req, res) => {
     const height = req.body.height || 1980;
     const width = req.body.width || 1080;
 
-    if(vicsstreamws.LiveMainCameraMap.has(camid)) {
-        const mainstream = vicsstreamws.LiveMainCameraMap.get(camid);
+    if(vicsstreamws.LiveSubCameraMap.has(camid)) {
+        const mainstream = vicsstreamws.LiveSubCameraMap.get(camid);
 
         res.setHeader('Content-Type', 'image/jpeg');
     
@@ -172,7 +172,7 @@ router.post('/capture/', (req, res) => {
         .outputOptions('-pix_fmt', 'yuv420p')
         .outputOptions('-s', `${height}x${width}`)
         .frames(1)
-        .outputOptions('-threads', '4')
+        .outputOptions('-threads', '3')
         .on('end', () => {
         })  
         .on('error', (err) => {
