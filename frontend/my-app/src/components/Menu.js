@@ -232,7 +232,7 @@ function Menubar() {
         })}
       >
         <Toolbar>
-        <IconButton
+        {/* <IconButton
             color="inherit"
             aria-label="open drawer"
             onClick={handleDrawerOpen}
@@ -240,7 +240,7 @@ function Menubar() {
             className={clsx(classes.menuButton, open && classes.hide)}
           >
             <MenuIcon />
-          </IconButton>
+          </IconButton> */}
           {/* <Typography className={classes.title} variant="h6" noWrap>
             VICS
           </Typography> */}
@@ -257,20 +257,20 @@ function Menubar() {
            Camera
           </Button>
 
-          <Button className={classes.menuButton} variant="h6" component={Link} to="/system" color="inherit" id="system" style={{ fontSize: '1.25rem' }} >
+          {/* <Button className={classes.menuButton} variant="h6" component={Link} to="/system" color="inherit" id="system" style={{ fontSize: '1.25rem' }} >
            System
-          </Button>
+          </Button> */}
 
           <Button className={classes.menuButton} variant="h6" component={Link} to="/onvif" color="inherit" id="onvif" style={{ fontSize: '1.25rem' }} >
            Onvif
           </Button>
 
-          <Button className={classes.menuButton} variant="h6" component={Link} to="/vics" color="inherit" id="vics" style={{ fontSize: '1.25rem' }} >
+          {/* <Button className={classes.menuButton} variant="h6" component={Link} to="/vics" color="inherit" id="vics" style={{ fontSize: '1.25rem' }} >
            Vics
-          </Button>
+          </Button> */}
 
           <div className={classes.grow} />
-          <div className={classes.sectionDesktop}>
+          {/* <div className={classes.sectionDesktop}>
             <IconButton aria-label="show 4 new mails" color="inherit">
               <Badge badgeContent={4} color="secondary">
                 <MailIcon />
@@ -291,8 +291,8 @@ function Menubar() {
             >
               <AccountCircle />
             </IconButton>
-          </div>
-          <div className={classes.sectionMobile}>
+          </div> */}
+          {/* <div className={classes.sectionMobile}>
             <IconButton
               aria-label="show more"
               aria-controls={mobileMenuId}
@@ -302,7 +302,7 @@ function Menubar() {
             >
               <MoreIcon />
             </IconButton>
-          </div>
+          </div> */}
         </Toolbar>
       </AppBar>
 
@@ -337,18 +337,18 @@ function Menubar() {
             <ListItemIcon> <CameraAltIcon /></ListItemIcon>
               <ListItemText  primary="Camera" />
             </ListItem>
-            <ListItem button key="system" component={Link} to="/system" >
+            {/* <ListItem button key="system" component={Link} to="/system" >
             <ListItemIcon> <SettingsSystemDaydreamIcon /></ListItemIcon>
               <ListItemText  primary="System" />
-            </ListItem>
+            </ListItem> */}
             <ListItem button key="onvif" component={Link} to="/onvif" >
             <ListItemIcon> <SearchIcon /></ListItemIcon>
               <ListItemText  primary="Onvif" />
             </ListItem>
-            <ListItem button key="vics" component={Link} to="/vics" >
+            {/* <ListItem button key="vics" component={Link} to="/vics" >
             <ListItemIcon> <CameraAltIcon /></ListItemIcon>
               <ListItemText  primary="Vics" />
-            </ListItem>
+            </ListItem> */}
         </List>
       </Drawer>
       {renderMobileMenu}

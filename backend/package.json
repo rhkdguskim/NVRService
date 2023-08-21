@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "devStart": "nodemon server.js",
-    "start": "pm2 start server.js -i max",
+    "start": "pm2 start server.js -i 1",
     "stop": "pm2 stop all",
     "monit": "pm2 monit",
     "protobuf": "npx pbjs -t static-module -w commonjs -o protobuf/VicsProto.js protobuf/linkproto.proto protobuf/linksystem.proto protobuf/vidconf.proto --es5 protobuf/VicsProto.js"

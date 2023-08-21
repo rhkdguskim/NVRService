@@ -132,7 +132,7 @@ function VideoPlayer({ caminfo, callbacks, isvod }) {
         left: "1%",
       }}
       >
-      Stream info
+      
       </div>
 
       <div
@@ -147,7 +147,7 @@ function VideoPlayer({ caminfo, callbacks, isvod }) {
         right: "1%",
       }}
       >
-      Time Stamp
+      
       </div>
     </>
     

@@ -9,8 +9,8 @@ const ffmpeg_static = require('ffmpeg-static');
 ffmpeg.setFfmpegPath(ffmpeg_static);
 expressWs(router);
 
-const vicsstreamws = new VicStream("110.110.10.102", "9080","admin","admin");
-const vicslinkws = new VicsLink("110.110.10.102", "9080","admin", "admin");
+const vicsstreamws = new VicStream("110.110.10.80", "9080","admin","admin");
+const vicslinkws = new VicsLink("110.110.10.80", "9080","admin", "admin");
 
 vicsstreamws.connect();
 vicslinkws.connect();

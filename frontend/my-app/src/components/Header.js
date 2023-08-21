@@ -91,7 +91,7 @@ function Header({user, handleLogin}) {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem onClick={handleRegister}>
+        {/* <MenuItem onClick={handleRegister}>
           <ListItemIcon>
             <PersonAdd fontSize="small" />
           </ListItemIcon>
@@ -102,7 +102,7 @@ function Header({user, handleLogin}) {
             <Settings fontSize="small" />
           </ListItemIcon>
           Settings
-        </MenuItem>
+        </MenuItem> */}
         <MenuItem component={Link} to="/" onClick={handleLogoutClick}>
           <ListItemIcon>
             <Logout fontSize="small" />

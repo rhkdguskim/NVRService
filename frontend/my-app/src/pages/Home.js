@@ -5,8 +5,8 @@ function Home() {
   return (
     <>
     <div style={{ width: '600px', height: '600px' }}>
-    <h1>System Diagnostics</h1>
-    <Useage/>
+    <h1>Mivics Web</h1>
+    {/* <Useage/> */}
     </div>
     </>
 

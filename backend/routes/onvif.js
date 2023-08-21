@@ -66,6 +66,7 @@ router.get("/", (req, res) => {
     const myArray = Array.from(SearchCamlist.values()); // Map 객체의 값들만 가져와서 배열로 변환
     const json = JSON.stringify(myArray);
     //console.log(json);
+    console.log(json)
     res.send(json);
  })
 
